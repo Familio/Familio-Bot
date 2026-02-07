@@ -52,11 +52,6 @@ if run_btn:
             pe_label, pe_col = get_rating(pe_to_rate, "PE")
             roe_label, roe_col = get_rating(roe, "ROE")
             debt_label, debt_col = get_rating(debt, "DEBT")
-
-# --- 1. CALCULATE INDIVIDUAL SCORES (ALREADY IN YOUR CODE) ---
-            pe_label, pe_score = get_rating(f_pe, "PE")
-            roe_label, roe_score = get_rating(roe, "ROE")
-            debt_label, debt_score = get_rating(debt, "DEBT")
             
             # --- 2. CALCULATE OVERALL SCORE ---
             total_score = pe_score + roe_score + debt_score
