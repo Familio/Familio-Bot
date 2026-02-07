@@ -4,140 +4,118 @@ import pandas as pd
 from google import genai
 import streamlit.components.v1 as components
 
-# --- 1. PAGE CONFIGURATION ---
-st.set_page_config(layout="wide", page_title="AI Stock Terminal")
+# 1. PAGE SETUP
+st.set_page_config(layout="wide", page_title="AI Trading Agent")
 
-# --- 2. TRADINGVIEW CHART FUNCTION ---
+# 2. THE CHART
 def tradingview_chart(symbol):
-    """Creates a large, interactive TradingView chart"""
     tv_html = f"""
-    <div class="tradingview-widget-container" style="height:800px;width:100%;">
+    <div class="tradingview-widget-container" style="height:8000px;width:100%;">
       <div id="tradingview_chart"></div>
       <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
       <script type="text/javascript">
       new TradingView.widget({{
-        "autosize": true,
-        "symbol": "{symbol}",
-        "interval": "D",
-        "timezone": "Etc/UTC",
-        "theme": "light",
-        "style": "1",
-        "locale": "en",
-        "toolbar_bg": "#f1f3f6",
-        "enable_publishing": false,
-        "allow_symbol_change": true,
-        "container_id": "tradingview_chart"
+        "autosize": true, "symbol": "{symbol}", "interval": "D",
+        "theme": "light", "style": "1", "locale": "en", "container_id": "tradingview_chart"
       }});
       </script>
     </div>
     """
     components.html(tv_html, height=800)
 
-# --- 3. HELPER FUNCTIONS ---
-def get_pct(hist, days):
-    """Calculates price change percentage"""
-    try:
-        start = hist['Close'].iloc[-days-1]
-        end = hist['Close'].iloc[-1]
-        return ((end - start) / start) * 100
-    except: return 0
+# 3. RATING LOGIC
+def get_detailed_rating(val, metric_type):
+    if val == 0 or val is None: return "⚪ N/A", 0
+    
+    if metric_type == "PE":
+        if val < 20: return "✅ Good Value: Stock is 'on sale' vs earnings.", 33
+        if val < 40: return "⚖️ Average: Priced where it should be.", 15
+        return "⚠️ Pricey: Stock might be too expensive.", 0
+        
+    if metric_type == "ROE":
+        if val > 18: return "🔥 High Power: Company is efficient.", 34
+        if val > 8: return "⚖️ Average: Standard performance.", 15
+        return "🐌 Slow: Company is getting 'lazy' with money.", 0
 
-# --- 4. SIDEBAR SETTINGS ---
+    if metric_type == "DEBT":
+        if val < 0.8: return "🛡️ Safe: Low debt risk.", 33
+        if val < 1.6: return "⚖️ Average: Manageable debt.", 15
+        return "🚩 Risky Debt: High danger if economy crashes.", 0
+
+# 4. SIDEBAR
 with st.sidebar:
-    st.header("⚙️ Configuration")
-    api_key = st.text_input("Paste Gemini API Key", type="password")
-    ticker_input = st.text_input("Stock Ticker", "TSM").upper()
-    run_btn = st.button("🚀 Run Full Analysis")
+    st.header("⚙️ Settings")
+    api_key = st.text_input("Gemini API Key", type="password")
+    ticker_input = st.text_input("Stock Ticker", "NVDA").upper()
+    run_btn = st.button("🚀 Run Analysis")
 
-# --- 5. MAIN APP LOGIC ---
 if run_btn:
     if not api_key:
-        st.error("Missing API Key! Please paste it in the sidebar.")
+        st.error("Missing API Key!")
     else:
         try:
-            # Fetch Data
             stock = yf.Ticker(ticker_input)
             info = stock.info
-            hist = stock.history(period="5y") # 5 years for full history
+            hist = stock.history(period="2y")
 
             # A. HEADER & CHART
-            st.title(f"📈 {ticker_input} - {info.get('longName', 'Stock Analysis')}")
+            st.title(f"📈 {ticker_input} Analysis")
             tradingview_chart(ticker_input)
 
-            # B. MARKET MOMENTUM TABLE
-            st.divider()
-            st.subheader("📊 Market Cap & Price Momentum")
-            
-            mkt_data = {
-                "Metric": ["Market Cap", "Trading Volume", "24h Change", "1 Week Change", "1 Month Change", "6 Month Change", "1 Year Change", "5 Year Change"],
-                "Value": [
-                    f"${info.get('marketCap', 0):,}",
-                    f"{info.get('volume', 0):,}",
-                    f"{get_pct(hist, 1):.2f}%",
-                    f"{get_pct(hist, 5):.2f}%",
-                    f"{get_pct(hist, 21):.2f}%",
-                    f"{get_pct(hist, 126):.2f}%",
-                    f"{get_pct(hist, 252):.2f}%",
-                    f"{((hist['Close'].iloc[-1] - hist['Close'].iloc[0]) / hist['Close'].iloc[0]) * 100:.2f}%"
-                ]
-            }
-            st.table(pd.DataFrame(mkt_data))
-
-            # C. FUNDAMENTALS & RATINGS TABLE
-            st.subheader("🏛️ Financial Health & Ratings")
-            
-            # Math for ratios
-            pe_ttm = info.get('trailingPE', 0)
+            # B. CALCULATE SCORES
             f_pe = info.get('forwardPE', 0)
             roe = info.get('returnOnEquity', 0) * 100
-            roa = info.get('returnOnAssets', 0) * 100
-            debt_eq = info.get('debtToEquity', 0) / 100
-            margin = info.get('profitMargins', 0) * 100
-
-            # Condition Logic
-            pe_cond = "✅ Good" if f_pe < 20 else "⚖️ Average" if f_pe < 35 else "❌ High"
-            roe_cond = "✅ Strong" if roe > 20 else "⚖️ Average" if roe > 10 else "❌ Weak"
-            debt_cond = "✅ Safe" if debt_eq < 0.8 else "⚖️ Average" if debt_eq < 1.5 else "❌ Risky"
-
-            fun_data = {
-                "Financial Metric": ["P/E Ratio (TTM)", "Forward P/E", "ROE", "ROA", "Debt/Equity", "Net Profit Margin"],
-                "Current Value": [f"{pe_ttm:.2f}", f"{f_pe:.2f}", f"{roe:.2f}%", f"{roa:.2f}%", f"{debt_eq:.2f}", f"{margin:.2f}%"],
-                "Condition": [pe_cond, pe_cond, roe_cond, "N/A", debt_cond, "N/A"]
-            }
-            st.table(pd.DataFrame(fun_data))
-
-            # D. FINAL AI SUMMARY VERDICT
-            st.divider()
-            st.subheader(f"🏁 Final AI Investment Verdict: {ticker_input}")
+            debt = info.get('debtToEquity', 0) / 100
             
-            with st.spinner("AI Analyst is thinking..."):
-                client = genai.Client(api_key=api_key)
-                
-                # Build the Mega-Prompt
-                analysis_prompt = f"""
-                Act as a professional Stock Analyst. Analyze {ticker_input} based on:
-                - Forward P/E: {f_pe} ({pe_cond})
-                - ROE: {roe:.2f}% ({roe_cond})
-                - Debt/Equity: {debt_eq:.2f} ({debt_cond})
-                - 1-Month Momentum: {get_pct(hist, 21):.2f}%
-                - 1-Year Momentum: {get_pct(hist, 252):.2f}%
-                
-                Tell the user if they should BUY, HOLD, or IGNORE FOR NOW. 
-                Explain why in a short paragraph and list the biggest risk.
-                """
-                
-                response = client.models.generate_content(model="gemini-1.5-flash", contents=analysis_prompt)
-                verdict_text = response.text
-                
-                # Visual Alert Boxes
-                if "BUY" in verdict_text.upper():
-                    st.success("🟢 AI SUGGESTION: BUY / FAVORABLE")
-                elif "HOLD" in verdict_text.upper():
-                    st.warning("🟡 AI SUGGESTION: HOLD / NEUTRAL")
+            pe_label, pe_score = get_detailed_rating(f_pe, "PE")
+            roe_label, roe_score = get_detailed_rating(roe, "ROE")
+            debt_label, debt_score = get_detailed_rating(debt, "DEBT")
+            
+            final_score = pe_score + roe_score + debt_score
+
+            # C. FINAL SCORE DASHBOARD
+            st.divider()
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                st.metric("Total Investment Score", f"{final_score}/100")
+                if final_score >= 80:
+                    st.success("💎 STRONG CALL CANDIDATE")
+                elif final_score >= 40:
+                    st.warning("⚖️ AVERAGE / HOLD")
                 else:
-                    st.error("🔴 AI SUGGESTION: IGNORE / AVOID")
-                
-                st.write(verdict_text)
+                    st.error("🚩 AVOID / HIGH RISK")
+            
+            with col2:
+                st.info("**💡 Pro Tip for the 'Call':** If your goal is to buy a Call option, you want all three metrics to be Green. If any metric is Red, it's safer to wait.")
+
+            # D. RATINGS TABLE
+            st.subheader("🚦 Rating Breakdown")
+            rating_df = pd.DataFrame({
+                "Metric": ["Valuation (P/E)", "Efficiency (ROE)", "Safety (Debt/Eq)"],
+                "Status": [pe_label, roe_label, debt_label]
+            })
+            st.table(rating_df)
+
+            # E. MOMENTUM TABLE
+            st.subheader("📊 Price Momentum")
+            # Using simple slicing for history
+            mom_df = pd.DataFrame({
+                "Timeframe": ["1 Week", "1 Month", "1 Year"],
+                "Change": [
+                    f"{((hist['Close'].iloc[-1]-hist['Close'].iloc[-5])/hist['Close'].iloc[-5])*100:.2f}%",
+                    f"{((hist['Close'].iloc[-1]-hist['Close'].iloc[-21])/hist['Close'].iloc[-21])*100:.2f}%",
+                    f"{((hist['Close'].iloc[-1]-hist['Close'].iloc[-252])/hist['Close'].iloc[-252])*100:.2f}%"
+                ]
+            })
+            st.table(mom_df)
+
+            # F. AI VERDICT
+            with st.spinner("AI Analyst reading the data..."):
+                client = genai.Client(api_key=api_key)
+                prompt = f"Analyze {ticker_input}. Score: {final_score}/100. PE: {f_pe}, ROE: {roe}%, Debt: {debt}. Verdict: BUY, HOLD, or AVOID?"
+                response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+                st.subheader("🤖 AI Executive Summary")
+                st.write(response.text)
 
         except Exception as e:
-            st.error(f"Something went wrong: {e}")
+            st.error(f"Error: {e}")
