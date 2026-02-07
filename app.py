@@ -4,7 +4,7 @@ import pandas as pd
 from google import genai
 
 st.set_page_config(layout="wide")
-st.title("🤖 AI Stock Agent with Ratings")
+st.title("🤖 Cicim Bot for Stock Analysis")
 
 # SIDEBAR
 with st.sidebar:
