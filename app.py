@@ -2,114 +2,134 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 from google import genai
+import streamlit.components.v1 as components
 
-st.set_page_config(layout="wide")
-st.title("🤖 Cicim Bot for Stock Analysis")
+# --- 1. PAGE CONFIGURATION ---
+st.set_page_config(layout="wide", page_title="Cicim Bot Pro")
+st.title("🤖 Cicim Bot: Advanced Stock Analysis")
 
-# SIDEBAR
+# --- 2. THE CHART FUNCTION ---
+def tradingview_chart(symbol):
+    tv_html = f"""
+    <div class="tradingview-widget-container" style="height:600px;width:100%;">
+      <div id="tradingview_chart"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+      <script type="text/javascript">
+      new TradingView.widget({{
+        "autosize": true, "symbol": "{symbol}", "interval": "D",
+        "theme": "light", "style": "1", "locale": "en", "container_id": "tradingview_chart"
+      }});
+      </script>
+    </div>
+    """
+    components.html(tv_html, height=600)
+
+# --- 3. RATING LOGIC ---
+def get_rating(val, metric_type):
+    if val == "N/A" or val is None or val == 0: 
+        return "⚪ Neutral", 0
+    if metric_type == "PE":
+        if val < 20: return "✅ Good Value", 33
+        if val < 40: return "⚖️ Average", 15
+        return "⚠️ Pricey", 0
+    if metric_type == "ROE":
+        if val > 18: return "🔥 High Power", 34
+        if val > 8: return "⚖️ Average", 15
+        return "🐌 Slow", 0
+    if metric_type == "DEBT":
+        if val < 0.8: return "🛡️ Very Safe", 33
+        if val < 1.6: return "⚖️ Average", 15
+        return "🚩 Risky Debt", 0
+
+# --- 4. SIDEBAR SETTINGS ---
 with st.sidebar:
     st.header("Settings")
     api_key = st.text_input("Gemini API Key", type="password")
     ticker_input = st.text_input("Stock Symbol", "TSM").upper()
-    run_btn = st.button("Analyze Now")
+    run_btn = st.button("🚀 Analyze Now")
 
-def get_rating(val, metric_type):
-    """Returns a rating and color based on industry benchmarks"""
-    if val == "N/A" or val is None: return "⚪ Neutral", "gray"
-    
-    if metric_type == "PE":
-        if val < 20: return "✅ Good Value", "green"
-        if val < 35: return "⚖️ Average", "orange"
-        return "⚠️ Pricey", "red"
-        
-    if metric_type == "ROE":
-        if val > 20: return "🔥 High Power", "green"
-        if val > 10: return "⚖️ Average", "orange"
-        return "🐌 Slow", "red"
-
-    if metric_type == "DEBT":
-        if val < 0.5: return "🛡️ Very Safe", "green"
-        if val < 1.5: return "⚖️ Average", "orange"
-        return "🚩 Risky Debt", "red"
-
+# --- 5. MAIN APP LOGIC ---
 if run_btn:
     if not api_key:
-        st.error("Please enter your API Key!")
+        st.error("Please enter your API Key in the sidebar!")
     else:
         try:
             stock = yf.Ticker(ticker_input)
             info = stock.info
             
-            # --- DATA EXTRACTION ---
-            market_cap = info.get('marketCap')
-            trailing_pe = info.get('trailingPE')
-            forward_pe = info.get('forwardPE')
+            # Data Extraction
+            mkt_cap = info.get('marketCap', 0)
+            f_pe = info.get('forwardPE')
             roe = info.get('returnOnEquity', 0) * 100
-            debt = info.get('debtToEquity', 0) / 100 
-            
-            # --- RATINGS ---
-            pe_to_rate = forward_pe if forward_pe else trailing_pe
-            pe_label, pe_col = get_rating(pe_to_rate, "PE")
-            roe_label, roe_col = get_rating(roe, "ROE")
-            debt_label, debt_col = get_rating(debt, "DEBT")
+            debt = info.get('debtToEquity', 0) / 100
+            cap_str = f"${mkt_cap/1e12:.2f}T" if mkt_cap >= 1e12 else f"${mkt_cap/1e9:.2f}B"
 
+            # --- 1. CALCULATE INDIVIDUAL SCORES ---
+            pe_label, pe_score = get_rating(f_pe, "PE")
+            roe_label, roe_score = get_rating(roe, "ROE")
+            debt_label, debt_score = get_rating(debt, "DEBT")
             
-            # --- DISPLAY DASHBOARD ---
-            st.subheader(f"Summary for {ticker_input}: {info.get('longName', '')}")
+            # --- 2. CALCULATE OVERALL SCORE ---
+            total_score = pe_score + roe_score + debt_score
             
-            # Metric Row 1: Key Financials
-            c1, c2, c3, c4 = st.columns(4)
-            # Formatting Market Cap to be readable (Billion/Trillion)
-            if market_cap:
-                formatted_cap = f"${market_cap/1e12:.2f}T" if market_cap >= 1e12 else f"${market_cap/1e9:.2f}B"
+            if total_score >= 80:
+                total_status = "💎 Strong Buy Candidate"
+            elif total_score >= 40:
+                total_status = "⚖️ Average / Hold"
             else:
-                formatted_cap = "N/A"
-                
-            c1.metric("Market Cap", formatted_cap)
-            c2.metric("Forward P/E", f"{forward_pe:.2f}" if forward_pe else "N/A", pe_label)
-            c3.metric("ROE %", f"{roe:.2f}%", roe_label)
-            c4.metric("Debt/Equity", f"{debt:.2f}", debt_label)
+                total_status = "🚩 High Risk / Avoid"
 
-            # --- DETAILED TABLE ---
+            # Display Visuals
+            st.subheader(f"Analysis for {ticker_input}")
+            tradingview_chart(ticker_input)
+
+            # --- 3. ADD TO THE TABLE ---
             st.divider()
             full_data = {
-                "Metric": ["Current Price", "Market Cap", "Trailing P/E", "Forward P/E", "ROE", "Debt/Equity", "Profit Margin"],
+                "Metric": [
+                    "Current Price", 
+                    "Market Cap", 
+                    "Forward P/E", 
+                    "ROE", 
+                    "Debt/Equity", 
+                    "OVERALL SCORE"
+                ],
                 "Value": [
                     f"${info.get('currentPrice')}", 
-                    formatted_cap,
-                    f"{trailing_pe:.2f}" if trailing_pe else "N/A",
-                    f"{forward_pe:.2f}" if forward_pe else "N/A", 
+                    cap_str,
+                    f"{f_pe:.2f}" if f_pe else "N/A", 
                     f"{roe:.2f}%", 
                     f"{debt:.2f}", 
-                    f"{info.get('profitMargins',0)*100:.2f}%"
+                    f"{total_score}/100"
                 ],
-                "Status": ["Current", "Size", "Historical Value", pe_label, roe_label, debt_label, "N/A"]
+                "Status": [
+                    "Current", 
+                    "Size", 
+                    pe_label, 
+                    roe_label, 
+                    debt_label, 
+                    total_status
+                ]
             }
             st.table(pd.DataFrame(full_data))
 
-# --- 6. EDUCATIONAL FOOTER ---
-            st.divider()
-            with st.expander("🚦 How to Read the Ratings & Methodology"):
-                st.markdown("""
-                ### 📊 Understanding the Metrics
-                * **Valuation (P/E):** Compares share price to earnings. 
-                    * *✅ Good Value (<20):* The stock is "on sale" compared to its profits.
-                    * *⚠️ Pricey (>35):* You are paying a high premium for every $1 of profit.
-                * **Efficiency (ROE):** Shows how well the company uses your money to make profit.
-                    * *🔥 High Power (>20%):* Exceptional management and high profitability.
-                    * *🐌 Slow (<10%):* The company is struggling to generate returns on shareholder capital.
-                * **Safety (Debt/Equity):** Measures financial risk.
-                    * *🛡️ Very Safe (<0.5):* The company has very little debt compared to its assets.
-                    * *🚩 Risky Debt (>1.5):* The company is heavily leveraged; risky if interest rates rise.
+            # --- AI VERDICT ---
+            with st.spinner("AI is thinking..."):
+                client = genai.Client(api_key=api_key)
+                prompt = f"Analyze {ticker_input}. Score: {total_score}/100. PE: {f_pe}, ROE: {roe}%, Debt: {debt}. BUY/HOLD/AVOID?"
+                response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+                st.subheader("🤖 AI Executive Summary")
+                st.write(response.text)
 
-                ### 🏁 Evaluation Logic (Score /100)
-                Your **Total Score** is a weighted average of these three pillars:
-                1.  **33% Valuation:** Is it cheap or expensive?
-                2.  **34% Efficiency:** Is the business model powerful?
-                3.  **33% Safety:** Is the financial foundation solid?
-                
-                **Pro Tip:** For a "Call" option, look for scores **above 80**. If any indicator is Red, the probability of a short-term drop is higher.
+            # --- EDUCATIONAL FOOTER ---
+            st.divider()
+            with st.expander("🚦 Methodology & Evaluation Breakdown"):
+                st.markdown(f"""
+                **How your {total_score}/100 score is calculated:**
+                1. **Valuation (33 pts):** Points awarded if Forward P/E is under 20.
+                2. **Efficiency (34 pts):** Points awarded if ROE is above 18%.
+                3. **Safety (33 pts):** Points awarded if Debt/Equity is below 0.8.
                 """)
-        
+
         except Exception as e:
             st.error(f"Error: {e}")
