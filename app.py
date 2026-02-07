@@ -53,6 +53,53 @@ if run_btn:
             roe_label, roe_col = get_rating(roe, "ROE")
             debt_label, debt_col = get_rating(debt, "DEBT")
 
+# --- 1. CALCULATE INDIVIDUAL SCORES (ALREADY IN YOUR CODE) ---
+            pe_label, pe_score = get_rating(f_pe, "PE")
+            roe_label, roe_score = get_rating(roe, "ROE")
+            debt_label, debt_score = get_rating(debt, "DEBT")
+            
+            # --- 2. CALCULATE OVERALL SCORE ---
+            total_score = pe_score + roe_score + debt_score
+            
+            # Define a status for the total score
+            if total_score >= 80:
+                total_status = "💎 Strong Buy Candidate"
+            elif total_score >= 40:
+                total_status = "⚖️ Average / Hold"
+            else:
+                total_status = "🚩 High Risk / Avoid"
+
+            # --- 3. ADD TO THE TABLE (Update your full_data dict) ---
+            st.divider()
+            full_data = {
+                "Metric": [
+                    "Current Price", 
+                    "Market Cap", 
+                    "Forward P/E", 
+                    "ROE", 
+                    "Debt/Equity", 
+                    "OVERALL SCORE"  # <--- New Row Header
+                ],
+                "Value": [
+                    f"${info.get('currentPrice')}", 
+                    cap_str,
+                    f"{f_pe:.2f}" if f_pe else "N/A", 
+                    f"{roe:.2f}%", 
+                    f"{debt:.2f}", 
+                    f"{total_score}/100"  # <--- New Row Value
+                ],
+                "Status": [
+                    "Current", 
+                    "Size", 
+                    pe_label, 
+                    roe_label, 
+                    debt_label, 
+                    total_status  # <--- New Row Status
+                ]
+            }
+            st.table(pd.DataFrame(full_data))
+
+            
             # --- DISPLAY DASHBOARD ---
             st.subheader(f"Summary for {ticker_input}: {info.get('longName', '')}")
             
