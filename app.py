@@ -3,23 +3,34 @@ import yfinance as yf
 import pandas as pd
 from google import genai
 
-st.set_page_config(layout="wide") # Makes the table easier to read
-st.title("🚀 Professional Stock Scanner")
+st.set_page_config(layout="wide")
+st.title("🤖 AI Stock Agent with Ratings")
 
-# SIDEBAR SETTINGS
+# SIDEBAR
 with st.sidebar:
-    st.header("Configuration")
+    st.header("Settings")
     api_key = st.text_input("Gemini API Key", type="password")
-    ticker_input = st.text_input("Enter Symbol", "TSM").upper()
-    run_btn = st.button("Run Full Analysis")
+    ticker_input = st.text_input("Stock Symbol", "TSM").upper()
+    run_btn = st.button("Analyze Now")
 
-def get_change(history, days):
-    """Calculates percentage change based on number of days"""
-    try:
-        current = history['Close'].iloc[-1]
-        past = history['Close'].iloc[-days-1] if len(history) > days else history['Close'].iloc[0]
-        return ((current - past) / past) * 100
-    except: return 0
+def get_rating(val, metric_type):
+    """Returns a rating and color based on industry benchmarks"""
+    if val == "N/A" or val is None: return "⚪ Neutral", "gray"
+    
+    if metric_type == "PE":
+        if val < 20: return "✅ Good Value", "green"
+        if val < 35: return "⚖️ Average", "orange"
+        return "⚠️ Pricey", "red"
+        
+    if metric_type == "ROE":
+        if val > 20: return "🔥 High Power", "green"
+        if val > 10: return "⚖️ Average", "orange"
+        return "🐌 Slow", "red"
+
+    if metric_type == "DEBT":
+        if val < 0.5: return "🛡️ Very Safe", "green"
+        if val < 1.5: return "⚖️ Average", "orange"
+        return "🚩 Risky Debt", "red"
 
 if run_btn:
     if not api_key:
@@ -28,57 +39,37 @@ if run_btn:
         try:
             stock = yf.Ticker(ticker_input)
             info = stock.info
-            # Fetch 5 years of history for the long-term changes
-            hist = stock.history(period="5y")
-
-            # 1. CALCULATE PRICE CHANGES
-            change_24h = get_change(hist, 1)
-            change_3d = get_change(hist, 3)
-            change_1w = get_change(hist, 5) # 5 trading days in a week
-            change_1m = get_change(hist, 21)
-            change_3m = get_change(hist, 63)
-            change_6m = get_change(hist, 126)
-            change_1y = get_change(hist, 252)
-            change_5y = ((hist['Close'].iloc[-1] - hist['Close'].iloc[0]) / hist['Close'].iloc[0]) * 100
-
-            # 2. ORGANIZE DATA INTO A TABLE
-            data = {
-                "Metric": ["Price", "Volume", "Market Cap", "P/E (TTM)", "Forward P/E", "Debt/Equity", "Profit Margin", "ROE", "ROA"],
-                "Value": [
-                    f"${info.get('currentPrice', 0):,.2f}",
-                    f"{info.get('volume', 0):,}",
-                    f"${info.get('marketCap', 0):,}",
-                    info.get('trailingPE', 'N/A'),
-                    info.get('forwardPE', 'N/A'),
-                    info.get('debtToEquity', 'N/A'),
-                    f"{info.get('profitMargins', 0)*100:.2f}%",
-                    f"{info.get('returnOnEquity', 0)*100:.2f}%",
-                    f"{info.get('returnOnAssets', 0)*100:.2f}%"
-                ]
-            }
-
-            perf = {
-                "Timeframe": ["24h", "3 Day", "1 Week", "1 Month", "3 Month", "6 Month", "1 Year", "5 Year"],
-                "Change %": [f"{change_24h:.2f}%", f"{change_3d:.2f}%", f"{change_1w:.2f}%", f"{change_1m:.2f}%", 
-                             f"{change_3m:.2f}%", f"{change_6m:.2f}%", f"{change_1y:.2f}%", f"{change_5y:.2f}%"]
-            }
-
-            # DISPLAY TABLES
-            col1, col2 = st.columns(2)
-            with col1:
-                st.subheader("Fundamentals")
-                st.table(pd.DataFrame(data))
-            with col2:
-                st.subheader("Price Performance")
-                st.table(pd.DataFrame(perf))
-
-            # 3. AI VERDICT
-            client = genai.Client(api_key=api_key)
-            prompt = f"Act as a financial analyst. Based on these metrics for {ticker_input}: {data} and {perf}, give me a detailed BUY/SELL/HOLD verdict."
-            response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
             
+            # --- CALCULATE RATINGS ---
+            pe = info.get('forwardPE')
+            roe = info.get('returnOnEquity', 0) * 100
+            debt = info.get('debtToEquity', 0) / 100 # yfinance debt is often shown as 100-base
+            
+            pe_label, pe_col = get_rating(pe, "PE")
+            roe_label, roe_col = get_rating(roe, "ROE")
+            debt_label, debt_col = get_rating(debt, "DEBT")
+
+            # --- DISPLAY DASHBOARD ---
+            st.subheader(f"Summary for {ticker_input}")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Valuation (P/E)", f"{pe:.2f}" if pe else "N/A", pe_label)
+            c2.metric("Efficiency (ROE)", f"{roe:.2f}%", roe_label)
+            c3.metric("Safety (Debt/Eq)", f"{debt:.2f}", debt_label)
+
+            # --- DETAILED TABLE ---
             st.divider()
-            st.subheader("🤖 AI Analyst Verdict")
+            full_data = {
+                "Metric": ["Price", "Forward P/E", "ROE", "Debt/Equity", "Profit Margin", "Net Assets"],
+                "Value": [info.get('currentPrice'), pe, f"{roe:.2f}%", debt, f"{info.get('profitMargins',0)*100:.2f}%", info.get('totalAssets')],
+                "Status": [ "Current", pe_label, roe_label, debt_label, "N/A", "N/A"]
+            }
+            st.table(pd.DataFrame(full_data))
+
+            # --- AI VERDICT ---
+            client = genai.Client(api_key=api_key)
+            prompt = f"Based on PE: {pe}, ROE: {roe}%, and Debt: {debt} for {ticker_input}, give a final rating: BUY, AVERAGE, or AVOID."
+            response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+            st.info("🤖 AI Final Recommendation:")
             st.write(response.text)
 
         except Exception as e:
