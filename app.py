@@ -64,10 +64,6 @@ if run_btn:
             else:
                 total_status = "🚩 High Risk / Avoid"
 
-            # Display Visuals
-            st.subheader(f"Analysis for {ticker_input}")
-            tradingview_chart(ticker_input)
-
             # --- 3. ADD TO THE TABLE ---
             st.divider()
             full_data = {
