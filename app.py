@@ -144,7 +144,6 @@ if run_btn:
                 * **Safety (Debt/Equity):** Measures financial risk.
                     * *🛡️ Very Safe (<0.5):* The company has very little debt compared to its assets.
                     * *🚩 Risky Debt (>1.5):* The company is heavily leveraged; risky if interest rates rise.
-
-        
+         """)
         except Exception as e:
             st.error(f"Error: {e}")
