@@ -2,13 +2,12 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 from google import genai
-import streamlit.components.v1 as components
 
 # --- 1. PAGE CONFIGURATION ---
 st.set_page_config(layout="wide", page_title="Cicim Bot Pro")
-st.title("🤖 Cicim Bot: Advanced Stock Analysis")
+st.title("🤖 Cicim Bot: Fundamental Analysis")
 
-# --- 3. RATING LOGIC ---
+# --- 2. RATING LOGIC ---
 def get_rating(val, metric_type):
     if val == "N/A" or val is None or val == 0: 
         return "⚪ Neutral", 0
@@ -25,14 +24,14 @@ def get_rating(val, metric_type):
         if val < 1.6: return "⚖️ Average", 15
         return "🚩 Risky Debt", 0
 
-# --- 4. SIDEBAR SETTINGS ---
+# --- 3. SIDEBAR SETTINGS ---
 with st.sidebar:
     st.header("Settings")
     api_key = st.text_input("Gemini API Key", type="password")
     ticker_input = st.text_input("Stock Symbol", "TSM").upper()
     run_btn = st.button("🚀 Analyze Now")
 
-# --- 5. MAIN APP LOGIC ---
+# --- 4. MAIN APP LOGIC ---
 if run_btn:
     if not api_key:
         st.error("Please enter your API Key in the sidebar!")
@@ -40,6 +39,10 @@ if run_btn:
         try:
             stock = yf.Ticker(ticker_input)
             info = stock.info
+            
+            # --- GET CHART DATA FROM YAHOO FINANCE ---
+            # Fetching 1 year of daily closing prices
+            hist = stock.history(period="1y")
             
             # Data Extraction
             mkt_cap = info.get('marketCap', 0)
@@ -49,12 +52,11 @@ if run_btn:
             debt = info.get('debtToEquity', 0) / 100
             cap_str = f"${mkt_cap/1e12:.2f}T" if mkt_cap >= 1e12 else f"${mkt_cap/1e9:.2f}B"
 
-            # --- 1. CALCULATE INDIVIDUAL SCORES ---
-            pe_label, pe_score = get_rating(f_pe, "PE")
+            # --- CALCULATE SCORES ---
+            pe_label, pe_score = get_rating(f_pe if f_pe else trailing_pe, "PE")
             roe_label, roe_score = get_rating(roe, "ROE")
             debt_label, debt_score = get_rating(debt, "DEBT")
             
-            # --- 2. CALCULATE OVERALL SCORE ---
             total_score = pe_score + roe_score + debt_score
             
             if total_score >= 80:
@@ -64,21 +66,29 @@ if run_btn:
             else:
                 total_status = "🚩 High Risk / Avoid"
 
-            # --- 3. ADD TO THE TABLE ---
+            st.subheader(f"Data Summary for {ticker_input} ({info.get('longName', '')})")
+
+            # --- 5. DISPLAY THE YAHOO FINANCE CHART ---
+            # We use Streamlit's area_chart for a clean, modern look
+            st.write("### 📈 1-Year Price History (via Yahoo Finance)")
+            st.area_chart(hist['Close'])
+
+            # --- 6. THE TABLE ---
             st.divider()
             full_data = {
                 "Metric": [
                     "Current Price", 
                     "Market Cap",
-                    "Price/Earning (TTM)"
+                    "Price/Earning (TTM)",
                     "Forward P/E", 
                     "Return on Equity (ROE)", 
                     "Debt/Equity", 
                     "OVERALL SCORE"
                 ],
                 "Value": [
-                    f"${info.get('currentPrice')}", 
+                    f"${info.get('currentPrice', 'N/A')}", 
                     cap_str,
+                    f"{trailing_pe:.2f}" if trailing_pe else "N/A",
                     f"{f_pe:.2f}" if f_pe else "N/A", 
                     f"{roe:.2f}%", 
                     f"{debt:.2f}", 
@@ -87,6 +97,7 @@ if run_btn:
                 "Status": [
                     "Current", 
                     "Size", 
+                    "Historical",
                     pe_label, 
                     roe_label, 
                     debt_label, 
@@ -95,7 +106,7 @@ if run_btn:
             }
             st.table(pd.DataFrame(full_data))
 
-            # --- EDUCATIONAL FOOTER ---
+               # --- EDUCATIONAL FOOTER ---
             st.divider()
             with st.expander("🚦 Methodology & Evaluation Breakdown"):
                 st.markdown(f"""
@@ -118,6 +129,8 @@ if run_btn:
                 * **Safety (Debt/Equity):** Measures financial risk.
                     * *🛡️ Very Safe (<0.5):* The company has very little debt compared to its assets.
                     * *🚩 Risky Debt (>1.5):* The company is heavily leveraged; risky if interest rates rise.
-         """)
+                
+                **Overall Verdict:** {total_status} ({total_score}/100)
+                """)
         except Exception as e:
             st.error(f"Error: {e}")
