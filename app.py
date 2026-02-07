@@ -8,30 +8,6 @@ import streamlit.components.v1 as components
 st.set_page_config(layout="wide", page_title="Cicim Bot Pro")
 st.title("🤖 Cicim Bot: Advanced Stock Analysis")
 
-# --- 2. THE CHART FUNCTION ---
-def tradingview_chart(symbol):
-    # 1. This height (800px) tells the TradingView widget how big to be.
-    tv_html = f"""
-    <div class="tradingview-widget-container" style="height:800px;width:100%;">
-      <div id="tradingview_chart"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-      <script type="text/javascript">
-      new TradingView.widget({{
-        "autosize": true,
-        "symbol": "{symbol}",
-        "interval": "D",
-        "timezone": "Etc/UTC",
-        "theme": "light",
-        "style": "1",
-        "locale": "en",
-        "toolbar_bg": "#f1f3f6",
-        "enable_publishing": false,
-        "allow_symbol_change": true,
-        "container_id": "tradingview_chart"
-      }});
-      </script>
-    </div>
-    """
 # --- 3. RATING LOGIC ---
 def get_rating(val, metric_type):
     if val == "N/A" or val is None or val == 0: 
@@ -67,6 +43,7 @@ if run_btn:
             
             # Data Extraction
             mkt_cap = info.get('marketCap', 0)
+            trailing_pe = info.get('trailingPE')
             f_pe = info.get('forwardPE')
             roe = info.get('returnOnEquity', 0) * 100
             debt = info.get('debtToEquity', 0) / 100
@@ -96,9 +73,10 @@ if run_btn:
             full_data = {
                 "Metric": [
                     "Current Price", 
-                    "Market Cap", 
+                    "Market Cap",
+                    "Price/Earning (TTM)"
                     "Forward P/E", 
-                    "ROE", 
+                    "Return on Equity (ROE)", 
                     "Debt/Equity", 
                     "OVERALL SCORE"
                 ],
