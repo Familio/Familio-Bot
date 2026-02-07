@@ -65,43 +65,12 @@ if run_btn:
             }
             st.table(pd.DataFrame(full_data))
 
-            # --- UPDATED AI VERDICT SECTION ---
+            # --- AI VERDICT ---
             client = genai.Client(api_key=api_key)
-            
-            # We build a super-prompt that includes EVERYTHING from your tables
-            analysis_prompt = f"""
-            Act as a professional Stock Analyst. Analyze {ticker_input} based on these specific data points:
-            
-            1. FUNDAMENTALS:
-               - Forward P/E: {pe} ({pe_r})
-               - ROE: {roe:.2f}% ({roe_r})
-               - Debt/Equity: {debt:.2f} ({debt_r})
-               - Net Profit Margin: {info.get('profitMargins', 0)*100:.2f}%
-            
-            2. MOMENTUM & MARKET:
-               - Market Cap: ${info.get('marketCap', 0):,}
-               - 1-Month Change: {get_pct(hist, 21):.2f}%
-               - 1-Year Change: {get_pct(hist, 252):.2f}%
-            
-            Based on this data, provide:
-            - A 'FINAL RATING' (BUY, HOLD, or IGNORE FOR NOW).
-            - A 'SUMMARY' explaining why (mentioning if it's too expensive or if the momentum is too fast).
-            - A 'RISK LEVEL' (Low, Medium, or High).
-            """
-            
-            response = client.models.generate_content(model="gemini-1.5-flash", contents=analysis_prompt)
-            
-            # Displaying the summary in a nice box
-            st.divider()
-            st.subheader(f"🏁 Final AI Investment Summary: {ticker_input}")
-            
-            # Using st.info or st.success based on the rating to make it look pro
-            verdict_text = response.text
-            if "BUY" in verdict_text.upper():
-                st.success("🟢 AI SUGGESTION: BUY")
-            elif "HOLD" in verdict_text.upper():
-                st.warning("🟡 AI SUGGESTION: HOLD / AVERAGE")
-            else:
-                st.error("🔴 AI SUGGESTION: IGNORE / AVOID")
-                
-            st.write(verdict_text)
+            prompt = f"Based on PE: {pe}, ROE: {roe}%, and Debt: {debt} for {ticker_input}, give a final rating: BUY, AVERAGE, or AVOID."
+            response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+            st.info("🤖 AI Final Recommendation:")
+            st.write(response.text)
+
+        except Exception as e:
+            st.error(f"Error: {e}")
