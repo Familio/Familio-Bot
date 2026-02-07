@@ -99,3 +99,10 @@ if run_btn:
 
             # D. AI VERDICT
             client = genai.Client(api_key=api_key)
+            prompt = f"Analyze {ticker_input}. PE is {pe}, ROE is {roe}%, Debt is {debt}. Verdict: Buy, Average, or Avoid?"
+            response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+            st.info("💡 AI Analyst Verdict")
+            st.write(response.text)
+
+        except Exception as e:
+            st.error(f"Something went wrong: {e}")
