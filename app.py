@@ -130,6 +130,29 @@ if run_btn:
                 2. **Efficiency (34 pts):** Points awarded if ROE is above 18%.
                 3. **Safety (33 pts):** Points awarded if Debt/Equity is below 0.8.
                 """)
+                    # --- 6. EDUCATIONAL FOOTER ---
+            st.divider()
+            with st.expander("🚦 How to Read the Ratings & Methodology"):
+                st.markdown("""
+                ### 📊 Understanding the Metrics
+                * **Valuation (P/E):** Compares share price to earnings. 
+                    * *✅ Good Value (<20):* The stock is "on sale" compared to its profits.
+                    * *⚠️ Pricey (>35):* You are paying a high premium for every $1 of profit.
+                * **Efficiency (ROE):** Shows how well the company uses your money to make profit.
+                    * *🔥 High Power (>20%):* Exceptional management and high profitability.
+                    * *🐌 Slow (<10%):* The company is struggling to generate returns on shareholder capital.
+                * **Safety (Debt/Equity):** Measures financial risk.
+                    * *🛡️ Very Safe (<0.5):* The company has very little debt compared to its assets.
+                    * *🚩 Risky Debt (>1.5):* The company is heavily leveraged; risky if interest rates rise.
+
+                ### 🏁 Evaluation Logic (Score /100)
+                Your **Total Score** is a weighted average of these three pillars:
+                1.  **33% Valuation:** Is it cheap or expensive?
+                2.  **34% Efficiency:** Is the business model powerful?
+                3.  **33% Safety:** Is the financial foundation solid?
+                
+                **Pro Tip:** For a "Call" option, look for scores **above 80**. If any indicator is Red, the probability of a short-term drop is higher.
+                """)
 
         except Exception as e:
             st.error(f"Error: {e}")
