@@ -7,22 +7,6 @@ import streamlit.components.v1 as components
 # 1. PAGE SETUP
 st.set_page_config(layout="wide", page_title="AI Trading Agent")
 
-# 2. THE CHART
-def tradingview_chart(symbol):
-    tv_html = f"""
-    <div class="tradingview-widget-container" style="height:8000px;width:100%;">
-      <div id="tradingview_chart"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-      <script type="text/javascript">
-      new TradingView.widget({{
-        "autosize": true, "symbol": "{symbol}", "interval": "D",
-        "theme": "light", "style": "1", "locale": "en", "container_id": "tradingview_chart"
-      }});
-      </script>
-    </div>
-    """
-    components.html(tv_html, height=800)
-
 # 3. RATING LOGIC
 def get_detailed_rating(val, metric_type):
     if val == 0 or val is None: return "⚪ N/A", 0
@@ -46,7 +30,7 @@ def get_detailed_rating(val, metric_type):
 with st.sidebar:
     st.header("⚙️ Settings")
     api_key = st.text_input("Gemini API Key", type="password")
-    ticker_input = st.text_input("Stock Ticker", "NVDA").upper()
+    ticker_input = st.text_input("Stock Ticker", "Type the Symbol here").upper()
     run_btn = st.button("🚀 Run Analysis")
 
 if run_btn:
