@@ -10,7 +10,8 @@ st.title("🤖 Cicim Bot: Advanced Stock Analysis")
 
 # --- 2. THE CHART FUNCTION ---
 def tradingview_chart(symbol):
-  tv_html = f"""
+    # 1. This height (800px) tells the TradingView widget how big to be.
+    tv_html = f"""
     <div class="tradingview-widget-container" style="height:800px;width:100%;">
       <div id="tradingview_chart"></div>
       <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
@@ -31,8 +32,6 @@ def tradingview_chart(symbol):
       </script>
     </div>
     """
-    components.html(tv_html, height=100)
-
 # --- 3. RATING LOGIC ---
 def get_rating(val, metric_type):
     if val == "N/A" or val is None or val == 0: 
