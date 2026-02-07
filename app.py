@@ -145,14 +145,6 @@ if run_btn:
                     * *🛡️ Very Safe (<0.5):* The company has very little debt compared to its assets.
                     * *🚩 Risky Debt (>1.5):* The company is heavily leveraged; risky if interest rates rise.
 
-                ### 🏁 Evaluation Logic (Score /100)
-                Your **Total Score** is a weighted average of these three pillars:
-                1.  **33% Valuation:** Is it cheap or expensive?
-                2.  **34% Efficiency:** Is the business model powerful?
-                3.  **33% Safety:** Is the financial foundation solid?
-                
-                **Pro Tip:** For a "Call" option, look for scores **above 80**. If any indicator is Red, the probability of a short-term drop is higher.
-                """)
-
+        
         except Exception as e:
             st.error(f"Error: {e}")
