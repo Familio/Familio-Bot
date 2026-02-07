@@ -10,7 +10,7 @@ st.set_page_config(layout="wide", page_title="AI Stock Terminal")
 def tradingview_chart(symbol):
     # This creates the interactive widget you see on pro sites
     tv_html = f"""
-    <div class="tradingview-widget-container" style="height:8000px;width:100%;">
+    <div class="tradingview-widget-container" style="height:25000px;width:100%;">
       <div id="tradingview_chart"></div>
       <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
       <script type="text/javascript">
