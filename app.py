@@ -10,14 +10,23 @@ st.title("🤖 Cicim Bot: Advanced Stock Analysis")
 
 # --- 2. THE CHART FUNCTION ---
 def tradingview_chart(symbol):
-    tv_html = f"""
-    <div class="tradingview-widget-container" style="height:50000;width:60%;">
+  tv_html = f"""
+    <div class="tradingview-widget-container" style="height:800px;width:100%;">
       <div id="tradingview_chart"></div>
       <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
       <script type="text/javascript">
       new TradingView.widget({{
-        "autosize": true, "symbol": "{symbol}", "interval": "D",
-        "theme": "light", "style": "1", "locale": "en", "container_id": "tradingview_chart"
+        "autosize": true,
+        "symbol": "{symbol}",
+        "interval": "D",
+        "timezone": "Etc/UTC",
+        "theme": "light",
+        "style": "1",
+        "locale": "en",
+        "toolbar_bg": "#f1f3f6",
+        "enable_publishing": false,
+        "allow_symbol_change": true,
+        "container_id": "tradingview_chart"
       }});
       </script>
     </div>
