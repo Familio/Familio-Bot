@@ -86,16 +86,6 @@ if run_btn:
             }
             st.table(pd.DataFrame(full_data))
 
-            # --- AI VERDICT ---
-            client = genai.Client(api_key=api_key)
-            prompt = (f"Analyze {ticker_input} ({info.get('longName')}). "
-                      f"Market Cap: {formatted_cap}, Forward PE: {forward_pe}, ROE: {roe:.2f}%, Debt: {debt}. "
-                      f"Give a final rating: BUY, AVERAGE, or AVOID with a 2-sentence justification.")
-            
-            response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
-            st.info("🤖 AI Final Recommendation:")
-            st.write(response.text)
-
 # --- 6. EDUCATIONAL FOOTER ---
             st.divider()
             with st.expander("🚦 How to Read the Ratings & Methodology"):
