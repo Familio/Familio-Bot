@@ -22,7 +22,7 @@ def tradingview_chart(symbol):
       </script>
     </div>
     """
-    components.html(tv_html, height=600)
+    components.html(tv_html, height=1500)
 
 # --- 3. RATING LOGIC ---
 def get_rating(val, metric_type):
