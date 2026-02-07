@@ -40,34 +40,58 @@ if run_btn:
             stock = yf.Ticker(ticker_input)
             info = stock.info
             
-            # --- CALCULATE RATINGS ---
-            pe = info.get('forwardPE')
+            # --- DATA EXTRACTION ---
+            market_cap = info.get('marketCap')
+            trailing_pe = info.get('trailingPE')
+            forward_pe = info.get('forwardPE')
             roe = info.get('returnOnEquity', 0) * 100
-            debt = info.get('debtToEquity', 0) / 100 # yfinance debt is often shown as 100-base
+            debt = info.get('debtToEquity', 0) / 100 
             
-            pe_label, pe_col = get_rating(pe, "PE")
+            # --- RATINGS ---
+            pe_to_rate = forward_pe if forward_pe else trailing_pe
+            pe_label, pe_col = get_rating(pe_to_rate, "PE")
             roe_label, roe_col = get_rating(roe, "ROE")
             debt_label, debt_col = get_rating(debt, "DEBT")
 
             # --- DISPLAY DASHBOARD ---
-            st.subheader(f"Summary for {ticker_input}")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Valuation (P/E)", f"{pe:.2f}" if pe else "N/A", pe_label)
-            c2.metric("Efficiency (ROE)", f"{roe:.2f}%", roe_label)
-            c3.metric("Safety (Debt/Eq)", f"{debt:.2f}", debt_label)
+            st.subheader(f"Summary for {ticker_input}: {info.get('longName', '')}")
+            
+            # Metric Row 1: Key Financials
+            c1, c2, c3, c4 = st.columns(4)
+            # Formatting Market Cap to be readable (Billion/Trillion)
+            if market_cap:
+                formatted_cap = f"${market_cap/1e12:.2f}T" if market_cap >= 1e12 else f"${market_cap/1e9:.2f}B"
+            else:
+                formatted_cap = "N/A"
+                
+            c1.metric("Market Cap", formatted_cap)
+            c2.metric("Forward P/E", f"{forward_pe:.2f}" if forward_pe else "N/A", pe_label)
+            c3.metric("ROE %", f"{roe:.2f}%", roe_label)
+            c4.metric("Debt/Equity", f"{debt:.2f}", debt_label)
 
             # --- DETAILED TABLE ---
             st.divider()
             full_data = {
-                "Metric": ["Price", "Forward P/E", "ROE", "Debt/Equity", "Profit Margin", "Net Assets"],
-                "Value": [info.get('currentPrice'), pe, f"{roe:.2f}%", debt, f"{info.get('profitMargins',0)*100:.2f}%", info.get('totalAssets')],
-                "Status": [ "Current", pe_label, roe_label, debt_label, "N/A", "N/A"]
+                "Metric": ["Current Price", "Market Cap", "Trailing P/E", "Forward P/E", "ROE", "Debt/Equity", "Profit Margin"],
+                "Value": [
+                    f"${info.get('currentPrice')}", 
+                    formatted_cap,
+                    f"{trailing_pe:.2f}" if trailing_pe else "N/A",
+                    f"{forward_pe:.2f}" if forward_pe else "N/A", 
+                    f"{roe:.2f}%", 
+                    f"{debt:.2f}", 
+                    f"{info.get('profitMargins',0)*100:.2f}%"
+                ],
+                "Status": ["Current", "Size", "Historical Value", pe_label, roe_label, debt_label, "N/A"]
             }
             st.table(pd.DataFrame(full_data))
 
             # --- AI VERDICT ---
             client = genai.Client(api_key=api_key)
-            prompt = f"Based on PE: {pe}, ROE: {roe}%, and Debt: {debt} for {ticker_input}, give a final rating: BUY, AVERAGE, or AVOID."
+            prompt = (f"Analyze {ticker_input} ({info.get('longName')}). "
+                      f"Market Cap: {formatted_cap}, Forward PE: {forward_pe}, ROE: {roe:.2f}%, Debt: {debt}. "
+                      f"Give a final rating: BUY, AVERAGE, or AVOID with a 2-sentence justification.")
+            
             response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
             st.info("🤖 AI Final Recommendation:")
             st.write(response.text)
