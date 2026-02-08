@@ -110,18 +110,35 @@ if run_btn:
             df_display = pd.DataFrame(full_data).astype(str)
             st.table(df_display)
 
-            # --- 7. METHODOLOGY ---
-            with st.expander("🚦 How to Read the Ratings & Methodology"):
+         # --- 7. DETAILED METHODOLOGY EXPANDER ---
+            st.divider()
+            with st.expander("🚦 Deep Dive: Scoring Methodology & Indicators"):
                 st.markdown(f"""
-                ### 📊 Understanding the Metrics
-                * **Valuation (P/E TTM):** Based on actual earnings from the last 12 months.
-                * **Forward P/E:** Based on projected future earnings.
-                * **Revenue (P/S):** Price to Sales multiple.
-                * **Assets (P/B):** Price to Book value.
-                * **Efficiency (ROE):** Management use of capital.
-                * **Safety (D/E):** Debt levels.
+                ### How the {total_score}/100 Score is Calculated
+                Each of the 5 key metrics below contributes up to **20 points**.
+                
+                | Indicator | ✅ 20 Points | ⚖️ 10 Points | ⚠️ 0 Points |
+                | :--- | :--- | :--- | :--- |
+                | **P/E Ratio** | < 20 (Value) | 20 - 40 (Fair) | > 40 (Pricey) |
+                | **P/S Ratio** | < 2.0 (Healthy) | 2.0 - 5.0 (Moderate) | > 5.0 (Hype) |
+                | **P/B Ratio** | < 1.5 (Asset Safe) | 1.5 - 4.0 (Fair) | > 4.0 (Premium) |
+                | **ROE %** | > 18% (Efficient) | 8% - 18% (Average) | < 8% (Slow) |
+                | **Debt/Equity**| < 0.8 (Low Risk) | 0.8 - 1.6 (Average) | > 1.6 (Risky) |
 
-                **Current Score:** {total_score}/100
+                ---
+
+                ### 🔍 Indicator Explanations
+                
+                * **P/E (Price-to-Earnings):** Measures cost per $1 of profit. **TTM** (Trailing Twelve Months) uses real past data, while **Forward** uses analyst estimates.
+                * **P/S (Price-to-Sales):** Compares stock price to total revenue. Revenue is harder to "fake" than profit, making this a very strong growth indicator.
+                * **P/B (Price-to-Book):** Compares market value to the company's net assets. A low P/B suggests you are buying the physical business at a bargain.
+                * **ROE (Return on Equity):** The "Management Quality" metric. It shows how much profit the company makes with shareholder money.
+                * **Debt-to-Equity:** Measures financial leverage. High debt can be dangerous if interest rates rise or sales slow down.
+
+                **Final Verdict Logic:**
+                * **80+ points:** 💎 High stability and valuation.
+                * **50-70 points:** ⚖️ Solid but has one or two weak spots.
+                * **Below 50:** 🚩 Significant valuation or debt concerns.
                 """)
 
     except Exception as e:
