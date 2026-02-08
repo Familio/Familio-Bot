@@ -1,5 +1,5 @@
-import streamlit as st
-import yfinance as yf
-import pandas as pd
-from google import genai
-
+streamlit
+yfinance
+pandas
+google-genai
+plotly
