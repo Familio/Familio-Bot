@@ -131,12 +131,24 @@ if run_btn or st.session_state.ticker:
         })
         st.table(df_display)
 
-        # --- 9. NEWS FEED (NEW) ---
-        st.subheader(f"Latest News: {ticker_to_use}")
-        news = stock.news[:5] # Get last 5 headlines
-        for item in news:
-            st.write(f"📌 **[{item['title']}]({item['link']})**")
-            st.caption(f"Source: {item['publisher']} | Type: {item['type']}")
+      # --- 9. NEWS FEED (Fixed for 2026) ---
+st.subheader(f"Latest News: {ticker_to_use}")
+try:
+    news = stock.news
+    if not news:
+        st.write("No recent news found for this ticker.")
+    else:
+        # Take only the first 5 news items
+        for item in news[:5]:
+            # Use .get() to avoid KeyError if 'title' or 'link' is missing
+            title = item.get('title', 'Headline Unavailable')
+            link = item.get('link', '#')
+            publisher = item.get('publisher', 'Unknown Source')
+            
+            st.write(f"📌 **[{title}]({link})**")
+            st.caption(f"Source: {publisher}")
+except Exception as news_err:
+    st.warning(f"Could not load news feed: {news_err}")
 
         # --- 10. METHODOLOGY ---
         with st.expander("🚦 Deep Dive: Analytical Framework & Scoring Logic"):
