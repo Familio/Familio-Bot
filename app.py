@@ -7,9 +7,9 @@ import streamlit.components.v1 as components
 st.set_page_config(layout="wide", page_title="Cicim Bot Pro", page_icon="📈")
 st.title("📈 Cicim Bot: Professional Stock Analysis")
 
-# --- 2. DUAL-MODE RATING LOGIC ---
+# --- 2. RATING ENGINE LOGIC ---
 def get_rating(val, metric_type):
-    """Calculates scores based on standard financial benchmarks."""
+    """Calculates ratings and points based on quantitative benchmarks."""
     if val == "N/A" or val is None or val == 0: 
         return "⚪ Neutral", 0, 0
     
@@ -37,87 +37,66 @@ def get_rating(val, metric_type):
 # --- 3. SIDEBAR (WATCHLIST & SEARCH) ---
 with st.sidebar:
     st.header("Search & Watchlist")
-    
-    # Text input for manual search
     ticker_input = st.text_input("Enter Ticker Symbol", "TSM").upper()
     
     st.write("---")
     st.subheader("Quick Select")
-    
-    watchlist = {
-        "TSM": "Taiwan Semi",
-        "NVDA": "NVIDIA",
-        "AAPL": "Apple",
-        "MSFT": "Microsoft",
-        "GOOGL": "Alphabet",
-        "META": "Meta"
-    }
-    
-    # If a button is clicked, we update the search box indirectly
+    watchlist = {"TSM": "Taiwan Semi", "NVDA": "NVIDIA", "AAPL": "Apple", "MSFT": "Microsoft", "GOOGL": "Alphabet", "META": "Meta"}
     for symbol, name in watchlist.items():
         if st.button(f"{symbol} ({name})", use_container_width=True):
             ticker_input = symbol 
             
     st.write("---")
     run_btn = st.button("🚀 Analyze Stock", type="primary", use_container_width=True)
-    st.info("The Modern Score is recommended for Tech and SaaS sectors.")
 
 # --- 4. MAIN APP LOGIC ---
 if run_btn or ticker_input:
     try:
-        # Initialize Ticker
         stock = yf.Ticker(ticker_input)
         info = stock.info
 
-        # 4a. Basic Metrics Extraction
+        # 4a. Fundamental Metrics
         pe = info.get('trailingPE')
         ps = info.get('priceToSalesTrailing12Months')
         pb = info.get('priceToBook')
         roe = (info.get('returnOnEquity', 0) or 0) * 100
         debt = (info.get('debtToEquity', 0) or 0) / 100
 
-        # 4b. Safety & Sentiment Overview
+        # 4b. Safety & Sentiment
         div_yield = (info.get('dividendYield', 0) or 0) * 100
         payout = (info.get('payoutRatio', 0) or 0) * 100
         target = info.get('targetMeanPrice')
         curr_price = info.get('currentPrice', 1)
         upside = ((target / curr_price) - 1) * 100 if target else 0
 
-        # 4c. ESG & Sustainability Extraction (NEW)
+        # 4c. ESG & Sustainability Extraction
         try:
             sus = stock.sustainability
             if sus is not None and not sus.empty:
-                # Lower is better on the Sustainalytics Risk Scale
                 esg_score = sus.loc['totalEsg', 'Value']
                 env_score = sus.loc['environmentScore', 'Value']
                 soc_score = sus.loc['socialScore', 'Value']
                 gov_score = sus.loc['governanceScore', 'Value']
                 
-                # Assign visual risk level
                 if esg_score < 20: esg_label, esg_color = "🌿 Low Risk", "normal"
                 elif esg_score < 35: esg_label, esg_color = "⚖️ Medium Risk", "off"
                 else: esg_label, esg_color = "🚩 High Risk", "inverse"
             else:
-                esg_score = env_score = soc_score = gov_score = None
-                esg_label, esg_color = "N/A", "off"
+                esg_score = None
         except:
-            esg_score = env_score = soc_score = gov_score = None
-            esg_label, esg_color = "N/A", "off"
+            esg_score = None
 
-        # 4d. Scoring Engine (Calculates ratings and points)
+        # 4d. Scoring Calculations
         l_pe, s20_pe, s25_pe = get_rating(pe, "PE")
         l_ps, s20_ps, s25_ps = get_rating(ps, "PS")
         l_pb, s20_pb, _      = get_rating(pb, "PB")
         l_roe, s20_roe, s25_roe = get_rating(roe, "ROE")
         l_debt, s20_debt, s25_debt = get_rating(debt, "DEBT")
 
-        # Summing the scores for both methodologies
         classic_total = s20_pe + s20_ps + s20_pb + s20_roe + s20_debt
         modern_total = s25_pe + s25_ps + s25_roe + s25_debt
 
-    except Exception as e:
-        st.error(f"⚠️ Error fetching data for {ticker_input}: {e}")
-        # --- 5. INTERACTIVE CHART ---
+        # --- 5. UI DISPLAY (CHART) ---
         st.subheader(f"Interactive Chart: {ticker_input}")
         tradingview_widget = f"""
         <div class="tradingview-widget-container">
@@ -125,31 +104,36 @@ if run_btn or ticker_input:
           <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
           <script type="text/javascript">
           new TradingView.widget({{
-            "width": "100%", "height": 500, "symbol": "{ticker_input}",
+            "width": "100%", "height": 400, "symbol": "{ticker_input}",
             "interval": "D", "theme": "light", "style": "1", "locale": "en",
             "container_id": "tradingview_chart"
           }});
           </script>
         </div>
         """
-        components.html(tradingview_widget, height=520)
+        components.html(tradingview_widget, height=420)
 
-        # --- 6. SAFETY & SENTIMENT METRICS ---
-        st.write("### 🛡️ Safety & Sentiment Overview")
+        # --- 6. SAFETY & ESG CARDS ---
+        st.write("### 🛡️ Safety, Sentiment & ESG")
         col_s1, col_s2, col_s3 = st.columns(3)
         col_s1.metric("Dividend Yield", f"{div_yield:.2f}%")
-        col_s2.metric("Payout Ratio", f"{payout:.1f}%", 
-                    delta="⚠️ High Risk" if payout > 75 else "✅ Healthy", delta_color="inverse")
-        col_s3.metric("Analyst Upside", f"{upside:.1f}%", 
-                    delta=f"Target: ${target}" if target else "No Data")
+        col_s2.metric("Payout Ratio", f"{payout:.1f}%", delta="⚠️ High" if payout > 75 else "✅ Healthy", delta_color="inverse")
+        col_s3.metric("Analyst Upside", f"{upside:.1f}%", delta=f"Target: ${target}" if target else "N/A")
+
+        if esg_score:
+            st.divider()
+            e1, e2, e3, e4 = st.columns(4)
+            e1.metric("ESG Risk Score", f"{esg_score:.1f}", delta=esg_label, delta_color=esg_color)
+            e2.metric("Env Risk", f"{env_score:.1f}")
+            e3.metric("Social Risk", f"{soc_score:.1f}")
+            e4.metric("Gov Risk", f"{gov_score:.1f}")
 
         # --- 7. SCOREBOARD ---
         st.divider()
         c1, c2 = st.columns(2)
-        c1.metric("Classic Score (Includes P/B)", f"{classic_total}/100")
-        c2.metric("Modern Score (NO P/B)", f"{modern_total}/100")
+        c1.metric("Classic Score (Value Focus)", f"{classic_total}/100")
+        c2.metric("Modern Score (Growth Focus)", f"{modern_total}/100")
 
-        # --- 8. DATA TABLE ---
         df_display = pd.DataFrame({
             "Metric": ["P/E (TTM)", "P/S Ratio", "P/B Ratio", "ROE %", "Debt/Equity"],
             "Value": [f"{pe:.2f}" if pe else "N/A", f"{ps:.2f}" if ps else "N/A", f"{pb:.2f}" if pb else "N/A", f"{roe:.2f}%", f"{debt:.2f}"],
@@ -157,72 +141,37 @@ if run_btn or ticker_input:
         })
         st.table(df_display)
 
-       # --- 10. EXPANDED METHODOLOGY ---
-        with st.expander("🚦 Full Methodology & Indicator Explanations"):
+        # --- 8. NEWS FEED (FIXED) ---
+        st.subheader(f"📰 Latest News: {ticker_input}")
+        try:
+            news = stock.news
+            if news:
+                for item in news[:5]:
+                    title = item.get('title', 'Headline Unavailable')
+                    link = item.get('link', '#')
+                    st.markdown(f"**[{title}]({link})**")
+                    st.caption(f"Source: {item.get('publisher', 'Unknown')}")
+            else:
+                st.info("No news found.")
+        except:
+            st.warning("News currently unavailable.")
+
+        # --- 9. METHODOLOGY ---
+        with st.expander("🚦 Methodology & ESG Explanation"):
             st.markdown(fr"""
-            ### 📊 The Rating System
-            The **Cicim Bot** uses two scoring models to assess a stock's health:
-            - **Classic Score (Value):** Assigns **20 points** to each of the 5 pillars (PE, PS, PB, ROE, Debt). Ideal for manufacturing and banking.
-            - **Modern Score (Growth):** Assigns **25 points** to 4 pillars, excluding **Price-to-Book (P/B)**. Preferred for software and AI companies where physical assets are less relevant.
-
-            ---
-
-            ### 🔍 Indicator Explanations
+            ### 🔍 Core Fundamental Pillars
+            - **P/E Ratio:** Price / Earnings. < 20 is "Value".
+            - **ROE:** Efficiency. $ROE = \frac{{\text{{Net Income}}}}{{\text{{Shareholders' Equity}}}}$. > 18% is "High Power".
+            - **Debt/Equity:** Risk. < 0.8 is "Safe".
             
-            #### 1. Price-to-Earnings (P/E) Ratio
-            * **Definition:** Compares stock price to earnings per share (EPS). It shows how many dollars investors pay for each dollar of profit.
-            * **Rating:**
-                * **✅ Good Value (< 20):** Often indicates undervaluation or a bargain price.
-                * **⚖️ Average (20–40):** Fairly priced for moderate growth.
-                * **⚠️ Pricey (> 40):** High expectations; risk of being overvalued.
-
-            #### 2. Price-to-Sales (P/S) Ratio
-            * **Definition:** Compares market cap to total revenue. Critical for growing companies that aren't profitable yet.
-            * **Rating:**
-                * **✅ Fair Sales (< 2.0):** Generally considered a healthy, low valuation.
-                * **⚠️ High Premium (> 5.0):** Investors are paying a massive premium for revenue.
-
-            #### 3. Price-to-Book (P/B) Ratio
-            * **Definition:** Compares stock price to the "book value" (assets minus liabilities).
-            * **Rating:**
-                * **💎 Undervalued (< 1.5):** Trading close to its liquidation value.
-                * **⚠️ Asset Heavy (> 4.0):** High valuation relative to physical assets.
-
-            #### 4. Return on Equity (ROE)
-            * **Formula:** $ROE = \frac{{\text{{Net Income}}}}{{\text{{Shareholders' Equity}}}}$
-            * **Definition:** Measures how efficiently management generates profit using shareholder capital.
-            * **Rating:**
-                * **🔥 High Power (> 18%):** Exceptional management efficiency.
-                * **🐌 Slow (< 8%):** Management is struggling to grow investor money.
-
-            #### 5. Debt-to-Equity (D/E)
-            * **Definition:** Measures financial leverage and risk. High ratios mean the company relies heavily on borrowed money.
-            * **Rating:**
-                * **🛡️ Very Safe (< 0.8):** Conservative balance sheet; low risk of bankruptcy.
-                * **🚩 Risky Debt (> 1.6):** High leverage; vulnerable during economic downturns.
-          ---
-
-                ### 🛡️ Safety & Sentiment Methodology
-
-            #### 1. Dividend Yield
-            - **Formula:** $\text{{Annual Div per Share}} / \text{{Stock Price}}$
-            - **Explanation:** Measures the cash return you get just for owning the stock.
-            - **Rating Philosophy:** - **2% - 4%:** Usually the "Sweet Spot" for stable growth + income.
-                - **> 6%:** **Red Flag Warning.** Often indicates a "Yield Trap" where the stock price has crashed due to fundamental trouble, making the yield look artificially high.
-
-            #### 2. Payout Ratio
-            - **Formula:** $\text{{Total Dividends}} / \text{{Net Income}}$
-            - **Explanation:** The percentage of earnings a company pays out as dividends.
-            - **Rating Philosophy:**
-                - **< 50%:** **Excellent.** Plenty of room to grow dividends and reinvest in the business.
-                - **50% - 75%:** **Healthy.** Common for mature companies (Utilities, Staples).
-                - **> 75%:** **Danger.** If earnings drop slightly, the company may be forced to cut the dividend to save cash.
-
-            #### 3. Analyst Upside (Price Targets)
-            - **Formula:** $(\text{{Average Target Price}} / \text{{Current Price}}) - 1$
-            - **Explanation:** The consensus of Wall Street experts on where the stock will be in 12 months.
-            - **Rating Philosophy:** - **Positive Upside:** Market sentiment suggests the stock is currently undervalued.
-                - **Negative Upside:** The stock may have "run too hot" and is trading above what analysts believe is its fair value.
+            ### 🌍 ESG Sustainability
+            - **Scale:** 0–100. **Lower is better** (measures "unmanaged risk").
+            - **Leader (< 20):** Company is highly resilient to climate and social risks.
+            - **Laggard (> 40):** High risk of fines or governance scandals.
+            
+            ### 🛡️ Safety Metrics
+            - **Payout Ratio:** % of profit paid as dividends. > 75% is a "Danger Zone".
+            - **Analyst Upside:** Difference between current price and Wall Street's 12-month target.
             """)
     except Exception as e:
         st.error(f"Error: {e}")
