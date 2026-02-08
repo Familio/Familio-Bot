@@ -41,9 +41,9 @@ with st.sidebar:
     
     st.write("---")
     st.subheader("Quick Select")
-    watchlist = {"TSM": "Taiwan Semi", "NVDA": "NVIDIA", "AAPL": "Apple", "MSFT": "Microsoft", "GOOGL": "Alphabet", "META": "Meta"}
+    watchlist = {"TSM": "TSM", "NVDA": "NVDA", "AAPL": "AAPL", "MSFT": "MSFT", "GOOGL": "GOOGL", "META": "META"}
     for symbol, name in watchlist.items():
-        if st.button(f"{symbol} ({name})", use_container_width=True):
+        if st.button(f"🔍 {symbol}", use_container_width=True):
             ticker_input = symbol 
             
     st.write("---")
@@ -69,7 +69,7 @@ if run_btn or ticker_input:
         curr_price = info.get('currentPrice', 1)
         upside = ((target / curr_price) - 1) * 100 if target else 0
 
-        # 4c. ESG & Sustainability Extraction
+        # 4c. ESG & Sustainability
         try:
             sus = stock.sustainability
             if sus is not None and not sus.empty:
@@ -78,9 +78,9 @@ if run_btn or ticker_input:
                 soc_score = sus.loc['socialScore', 'Value']
                 gov_score = sus.loc['governanceScore', 'Value']
                 
-                if esg_score < 20: esg_label, esg_color = "🌿 Low Risk", "normal"
-                elif esg_score < 35: esg_label, esg_color = "⚖️ Medium Risk", "off"
-                else: esg_label, esg_color = "🚩 High Risk", "inverse"
+                if esg_score < 20: esg_label = "🌿 Low Risk"
+                elif esg_score < 35: esg_label = "⚖️ Medium Risk"
+                else: esg_label = "🚩 High Risk"
             else:
                 esg_score = None
         except:
@@ -113,20 +113,14 @@ if run_btn or ticker_input:
         """
         components.html(tradingview_widget, height=420)
 
-        # --- 6. SAFETY & ESG CARDS ---
-        st.write("### 🛡️ Safety, Sentiment & ESG")
+        # --- 6. SAFETY & SENTIMENT CARDS ---
+        st.write("### 🛡️ Safety & Sentiment")
         col_s1, col_s2, col_s3 = st.columns(3)
         col_s1.metric("Dividend Yield", f"{div_yield:.2f}%")
-        col_s2.metric("Payout Ratio", f"{payout:.1f}%", delta="⚠️ High" if payout > 75 else "✅ Healthy", delta_color="inverse")
-        col_s3.metric("Analyst Upside", f"{upside:.1f}%", delta=f"Target: ${target}" if target else "N/A")
-
-        if esg_score:
-            st.divider()
-            e1, e2, e3, e4 = st.columns(4)
-            e1.metric("ESG Risk Score", f"{esg_score:.1f}", delta=esg_label, delta_color=esg_color)
-            e2.metric("Env Risk", f"{env_score:.1f}")
-            e3.metric("Social Risk", f"{soc_score:.1f}")
-            e4.metric("Gov Risk", f"{gov_score:.1f}")
+        col_s2.metric("Payout Ratio", f"{payout:.1f}%", 
+                    delta="⚠️ High" if payout > 75 else "✅ Healthy", delta_color="inverse")
+        col_s3.metric("Analyst Upside", f"{upside:.1f}%", 
+                    delta=f"Target: ${target}" if target else "N/A")
 
         # --- 7. SCOREBOARD ---
         st.divider()
@@ -134,44 +128,49 @@ if run_btn or ticker_input:
         c1.metric("Classic Score (Value Focus)", f"{classic_total}/100")
         c2.metric("Modern Score (Growth Focus)", f"{modern_total}/100")
 
-        df_display = pd.DataFrame({
-            "Metric": ["P/E (TTM)", "P/S Ratio", "P/B Ratio", "ROE %", "Debt/Equity"],
-            "Value": [f"{pe:.2f}" if pe else "N/A", f"{ps:.2f}" if ps else "N/A", f"{pb:.2f}" if pb else "N/A", f"{roe:.2f}%", f"{debt:.2f}"],
-            "Rating": [l_pe, l_ps, l_pb, l_roe, l_debt]
-        })
-        st.table(df_display)
+        # --- 8. THE COMPLETE DATA TABLE (With ESG) ---
+        st.write("### 📊 Comprehensive Report")
+        table_data = [
+            ["P/E (TTM)", f"{pe:.2f}" if pe else "N/A", l_pe],
+            ["P/S Ratio", f"{ps:.2f}" if ps else "N/A", l_ps],
+            ["P/B Ratio", f"{pb:.2f}" if pb else "N/A", l_pb],
+            ["ROE %", f"{roe:.2f}%", l_roe],
+            ["Debt/Equity", f"{debt:.2f}", l_debt]
+        ]
 
-        # --- 8. NEWS FEED (FIXED) ---
-        st.subheader(f"📰 Latest News: {ticker_input}")
-        try:
-            news = stock.news
-            if news:
-                for item in news[:5]:
-                    title = item.get('title', 'Headline Unavailable')
-                    link = item.get('link', '#')
-                    st.markdown(f"**[{title}]({link})**")
-                    st.caption(f"Source: {item.get('publisher', 'Unknown')}")
-            else:
-                st.info("No news found.")
-        except:
-            st.warning("News currently unavailable.")
+        if esg_score:
+            table_data.append(["Total ESG Risk", f"{esg_score:.1f}", esg_label])
+            table_data.append(["Env Risk Score", f"{env_score:.1f}", "Environmental"])
+            table_data.append(["Social Risk Score", f"{soc_score:.1f}", "Social"])
+            table_data.append(["Gov Risk Score", f"{gov_score:.1f}", "Governance"])
+
+        df_display = pd.DataFrame(table_data, columns=["Metric", "Value", "Verdict"])
+        
+        # Applying row coloring logic
+        def style_verdict(row):
+            if "Good" in str(row.Verdict) or "Safe" in str(row.Verdict) or "Low Risk" in str(row.Verdict) or "Power" in str(row.Verdict):
+                return ['background-color: rgba(0, 255, 0, 0.1)'] * len(row)
+            if "Risky" in str(row.Verdict) or "Pricey" in str(row.Verdict) or "High Risk" in str(row.Verdict):
+                return ['background-color: rgba(255, 0, 0, 0.1)'] * len(row)
+            return [''] * len(row)
+
+        st.dataframe(df_display.style.apply(style_verdict, axis=1), width=1000)
 
         # --- 9. METHODOLOGY ---
-        with st.expander("🚦 Methodology & ESG Explanation"):
+        with st.expander("🚦 Methodology, Indicators & ESG Explanation"):
             st.markdown(fr"""
-            ### 🔍 Core Fundamental Pillars
-            - **P/E Ratio:** Price / Earnings. < 20 is "Value".
-            - **ROE:** Efficiency. $ROE = \frac{{\text{{Net Income}}}}{{\text{{Shareholders' Equity}}}}$. > 18% is "High Power".
-            - **Debt/Equity:** Risk. < 0.8 is "Safe".
+            ### 📜 Scoring Framework
+            - **Classic Score:** Uses 5 metrics (PE, PS, PB, ROE, Debt) at 20 points each.
+            - **Modern Score:** Uses 4 metrics (PE, PS, ROE, Debt) at 25 points each.
             
-            ### 🌍 ESG Sustainability
-            - **Scale:** 0–100. **Lower is better** (measures "unmanaged risk").
-            - **Leader (< 20):** Company is highly resilient to climate and social risks.
-            - **Laggard (> 40):** High risk of fines or governance scandals.
+            ### 🔍 Pillar Definitions
+            1. **P/E Ratio:** Price vs Profit. < 20 is a bargain.
+            2. **ROE:** Management efficiency. $ROE = \frac{{\text{{Net Income}}}}{{\text{{Shareholders' Equity}}}}$.
+            3. **ESG Risk:** Measures unmanaged risk from 0-100. **Lower is Better**.
             
-            ### 🛡️ Safety Metrics
-            - **Payout Ratio:** % of profit paid as dividends. > 75% is a "Danger Zone".
-            - **Analyst Upside:** Difference between current price and Wall Street's 12-month target.
+            ### 🛡️ Safety Thresholds
+            - **Payout Ratio:** > 75% means the dividend is at risk of being cut.
+            - **D/E Ratio:** > 1.6 indicates a company is heavily reliant on debt.
             """)
     except Exception as e:
         st.error(f"Error: {e}")
