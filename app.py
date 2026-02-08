@@ -1,3 +1,12 @@
+import requests_cache
+from requests import Session
+from requests_ratelimiter import LimiterSession
+
+# This tells the app to remember data for 10 minutes 
+# and stay under the rate limit automatically
+session = LimiterSession(per_second=2) 
+# You can then pass this session to yf.Ticker(ticker, session=session)
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
