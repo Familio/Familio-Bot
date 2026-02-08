@@ -101,6 +101,31 @@ if run_btn:
                 # Convert to string to prevent Arrow serialization errors
                 df_display = pd.DataFrame(full_data).astype(str)
                 st.table(df_display)
-
+ # --- EDUCATIONAL FOOTER ---
+            st.divider()
+            with st.expander("🚦 Methodology & Evaluation Breakdown"):
+                st.markdown(f"""
+                **How your {total_score}/100 score is calculated:**
+                1. **Valuation (33 pts):** Points awarded if Forward P/E is under 20.
+                2. **Efficiency (34 pts):** Points awarded if ROE is above 18%.
+                3. **Safety (33 pts):** Points awarded if Debt/Equity is below 0.8.
+                """)
+                    # --- 6. EDUCATIONAL FOOTER ---
+            st.divider()
+            with st.expander("🚦 How to Read the Ratings & Methodology"):
+                st.markdown("""
+                ### 📊 Understanding the Metrics
+                * **Valuation (P/E):** Compares share price to earnings. 
+                    * *✅ Good Value (<20):* The stock is "on sale" compared to its profits.
+                    * *⚠️ Pricey (>35):* You are paying a high premium for every $1 of profit.
+                * **Efficiency (ROE):** Shows how well the company uses your money to make profit.
+                    * *🔥 High Power (>20%):* Exceptional management and high profitability.
+                    * *🐌 Slow (<10%):* The company is struggling to generate returns on shareholder capital.
+                * **Safety (Debt/Equity):** Measures financial risk.
+                    * *🛡️ Very Safe (<0.5):* The company has very little debt compared to its assets.
+                    * *🚩 Risky Debt (>1.5):* The company is heavily leveraged; risky if interest rates rise.
+                
+                **Overall Verdict:** {total_status} ({total_score}/100)
+                """)
         except Exception as e:
             st.error(f"Error processing {ticker_input}: {e}")
