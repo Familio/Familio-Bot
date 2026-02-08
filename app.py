@@ -13,7 +13,6 @@ def get_rating(val, metric_type):
     if val == "N/A" or val is None or val == 0: 
         return "⚪ Neutral", 0, 0
     
-    # Benchmarks for PE (both Trailing and Forward)
     if metric_type == "PE":
         if val < 20: return "✅ Good Value", 20, 25
         if val < 40: return "⚖️ Average", 10, 12
@@ -38,17 +37,30 @@ def get_rating(val, metric_type):
 # --- 3. SIDEBAR (WATCHLIST & SEARCH) ---
 with st.sidebar:
     st.header("Search & Watchlist")
+    
+    # Text input for manual search
     ticker_input = st.text_input("Enter Ticker Symbol", "TSM").upper()
     
     st.write("---")
     st.subheader("Quick Select")
-    watchlist = {"TSM": "TSM", "NVDA": "NVIDIA", "AAPL": "Apple", "MSFT": "Microsoft", "GOOGL": "Alphabet"}
+    
+    watchlist = {
+        "TSM": "Taiwan Semi",
+        "NVDA": "NVIDIA",
+        "AAPL": "Apple",
+        "MSFT": "Microsoft",
+        "GOOGL": "Alphabet",
+        "META": "Meta"
+    }
+    
+    # If a button is clicked, we update the search box indirectly
     for symbol, name in watchlist.items():
-        if st.button(f"🔍 {symbol}", use_container_width=True):
+        if st.button(f"{symbol} ({name})", use_container_width=True):
             ticker_input = symbol 
             
     st.write("---")
     run_btn = st.button("🚀 Analyze Stock", type="primary", use_container_width=True)
+    st.info("The Modern Score is recommended for Tech and SaaS sectors.")
 
 # --- 4. MAIN APP LOGIC ---
 if run_btn or ticker_input:
@@ -56,15 +68,14 @@ if run_btn or ticker_input:
         stock = yf.Ticker(ticker_input)
         info = stock.info
 
-        # 4a. Fundamental Metrics (Added Forward PE)
-        pe_trailing = info.get('trailingPE')
-        pe_forward = info.get('forwardPE')
+        # 4a. Basic Metrics
+        pe = info.get('trailingPE')
         ps = info.get('priceToSalesTrailing12Months')
         pb = info.get('priceToBook')
         roe = (info.get('returnOnEquity', 0) or 0) * 100
         debt = (info.get('debtToEquity', 0) or 0) / 100
 
-        # 4b. Safety & Sentiment
+        # 4b. Safety & Sentiment (NEW OVERVIEW METRICS)
         div_yield = (info.get('dividendYield', 0) or 0) * 100
         payout = (info.get('payoutRatio', 0) or 0) * 100
         target = info.get('targetMeanPrice')
@@ -72,16 +83,14 @@ if run_btn or ticker_input:
         upside = ((target / curr_price) - 1) * 100 if target else 0
 
         # 4c. Scoring Calculation
-        l_pe_t, s20_pe_t, _ = get_rating(pe_trailing, "PE")
-        l_pe_f, _, s25_pe_f = get_rating(pe_forward, "PE") # Forward PE used in Modern Score
+        l_pe, s20_pe, s25_pe = get_rating(pe, "PE")
         l_ps, s20_ps, s25_ps = get_rating(ps, "PS")
         l_pb, s20_pb, _      = get_rating(pb, "PB")
         l_roe, s20_roe, s25_roe = get_rating(roe, "ROE")
         l_debt, s20_debt, s25_debt = get_rating(debt, "DEBT")
 
-        # Classic uses Trailing PE | Modern uses Forward PE
-        classic_total = s20_pe_t + s20_ps + s20_pb + s20_roe + s20_debt
-        modern_total = s25_pe_f + s25_ps + s25_roe + s25_debt
+        classic_total = s20_pe + s20_ps + s20_pb + s20_roe + s20_debt
+        modern_total = s25_pe + s25_ps + s25_roe + s25_debt
 
         # --- 5. INTERACTIVE CHART ---
         st.subheader(f"Interactive Chart: {ticker_input}")
@@ -91,14 +100,14 @@ if run_btn or ticker_input:
           <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
           <script type="text/javascript">
           new TradingView.widget({{
-            "width": "100%", "height": 450, "symbol": "{ticker_input}",
+            "width": "100%", "height": 500, "symbol": "{ticker_input}",
             "interval": "D", "theme": "light", "style": "1", "locale": "en",
             "container_id": "tradingview_chart"
           }});
           </script>
         </div>
         """
-        components.html(tradingview_widget, height=470)
+        components.html(tradingview_widget, height=520)
 
         # --- 6. SAFETY & SENTIMENT METRICS ---
         st.write("### 🛡️ Safety & Sentiment Overview")
@@ -112,23 +121,14 @@ if run_btn or ticker_input:
         # --- 7. SCOREBOARD ---
         st.divider()
         c1, c2 = st.columns(2)
-        c1.metric("Classic Score (Trailing Focus)", f"{classic_total}/100")
-        c2.metric("Modern Score (Forward Focus)", f"{modern_total}/100")
+        c1.metric("Classic Score (Includes P/B)", f"{classic_total}/100")
+        c2.metric("Modern Score (NO P/B)", f"{modern_total}/100")
 
-        # --- 8. COMPREHENSIVE DATA TABLE ---
-        pe_delta = f"{pe_forward - pe_trailing:.1f}" if pe_forward and pe_trailing else "N/A"
-        
+        # --- 8. DATA TABLE ---
         df_display = pd.DataFrame({
-            "Metric": ["P/E (Trailing)", "P/E (Forward)", "P/S Ratio", "P/B Ratio", "ROE %", "Debt/Equity"],
-            "Value": [
-                f"{pe_trailing:.2f}" if pe_trailing else "N/A", 
-                f"{pe_forward:.2f}" if pe_forward else "N/A", 
-                f"{ps:.2f}" if ps else "N/A", 
-                f"{pb:.2f}" if pb else "N/A", 
-                f"{roe:.2f}%", 
-                f"{debt:.2f}"
-            ],
-            "Verdict": [l_pe_t, l_pe_f, l_ps, l_pb, l_roe, l_debt]
+            "Metric": ["P/E (TTM)", "P/S Ratio", "P/B Ratio", "ROE %", "Debt/Equity"],
+            "Value": [f"{pe:.2f}" if pe else "N/A", f"{ps:.2f}" if ps else "N/A", f"{pb:.2f}" if pb else "N/A", f"{roe:.2f}%", f"{debt:.2f}"],
+            "Rating": [l_pe, l_ps, l_pb, l_roe, l_debt]
         })
         st.table(df_display)
 
