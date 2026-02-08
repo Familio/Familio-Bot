@@ -96,7 +96,7 @@ if run_btn:
                 * Skips the **P/B Ratio** entirely.
                 * Redistributes those points so P/E, P/S, ROE, and Debt are worth **25 points** each.
                 * **Best for:** Software, Semiconductors (like TSM), and AI companies.
-                """)
+    
 
     # --- 7. DETAILED METHODOLOGY EXPANDER ---
 st.divider()
