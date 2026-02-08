@@ -92,6 +92,41 @@ if run_btn or ticker_input:
         classic_total = s20_pe + s20_ps + s20_pb + s20_roe + s20_debt
         modern_total = s25_pe + s25_ps + s25_roe + s25_debt
 
+        # --- 1. NEW ESG EXTRACTION LOGIC (Add inside Section 4) ---
+try:
+    sus = stock.sustainability
+    if sus is not None and not sus.empty:
+        # Extracting the three main pillar scores
+        esg_score = sus.loc['totalEsg', 'Value']
+        env_score = sus.loc['environmentScore', 'Value']
+        soc_score = sus.loc['socialScore', 'Value']
+        gov_score = sus.loc['governanceScore', 'Value']
+        
+        # Rating Logic: Lower is often better in some ESG frameworks (Risk Rating)
+        # We will treat it as a Risk Score where 0-20 is Low Risk
+        if esg_score < 20: esg_label, esg_color = "🌿 Low Risk", "normal"
+        elif esg_score < 35: esg_label, esg_color = "⚖️ Medium Risk", "off"
+        else: esg_label, esg_color = "🚩 High Risk", "inverse"
+    else:
+        esg_score = env_score = soc_score = gov_score = None
+        esg_label = "N/A"
+except:
+    esg_score = None
+    esg_label = "N/A"
+
+# --- 2. ESG UI DISPLAY (Add after Safety & Sentiment) ---
+st.write("---")
+st.subheader("🌍 Sustainability & ESG Risk")
+if esg_score:
+    e1, e2, e3, e4 = st.columns(4)
+    e1.metric("Total ESG Risk", f"{esg_score:.1f}", delta=esg_label, delta_color=esg_color)
+    e2.metric("Environment", f"{env_score:.1f}")
+    e3.metric("Social", f"{soc_score:.1f}")
+    e4.metric("Governance", f"{gov_score:.1f}")
+    st.caption("Note: Lower scores indicate lower unmanaged ESG risk (Sustainalytics scale).")
+else:
+    st.info("ESG Data not available for this ticker.")
+
         # --- 5. INTERACTIVE CHART ---
         st.subheader(f"Interactive Chart: {ticker_input}")
         tradingview_widget = f"""
