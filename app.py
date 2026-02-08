@@ -102,6 +102,38 @@ if run_btn or ticker_input:
         classic_total = s20_pe + s20_ps + s20_pb + s20_roe + s20_debt
         modern_total = s25_pe + s25_ps + s25_roe + s25_debt
 
+         # 4b. Fundamental Scoring
+        l_pe, s20_pe, _ = get_rating(pe, "PE")
+        l_fpe, _, _ = get_rating(f_pe, "FPE")
+        l_roe, s20_roe, _ = get_rating(roe, "ROE")
+        l_debt, s20_debt, _ = get_rating(debt, "DEBT")
+        l_ps, s20_ps, _ = get_rating(ps, "PS")
+        l_pb, s20_pb, _ = get_rating(pb, "PB")
+        
+        fundamental_score = s20_pe + s20_roe + s20_debt + s20_ps + s20_pb
+        
+        # 4c. Technical Signals (Quick Approximation)
+        upside = ((target / curr_price) - 1) * 100 if target else 0
+        tech_score = 0
+        if upside > 15: tech_score += 30
+        elif upside > 0: tech_score += 15
+        
+        # Final Combined Score
+        total_score = (fundamental_score * 0.7) + (tech_score) # Weighted 70/30
+        
+        if total_score >= 80: verdict, color = "🚀 STRONG BUY", "green"
+        elif total_score >= 60: verdict, color = "📈 BUY", "#90EE90"
+        elif total_score >= 40: verdict, color = "⚖️ HOLD", "gray"
+        else: verdict, color = "🚩 SELL", "red"
+            
+# --- 5.1 DISPLAY VERDICT ---
+        st.markdown(f"""
+            <div style="background-color:{color}; padding:20px; border-radius:10px; text-align:center;">
+                <h1 style="color:white; margin:0;">Verdict: {verdict}</h1>
+                <h2 style="color:white; margin:0;">Total Score: {int(total_score)}/100</h2>
+            </div>
+        """, unsafe_content_html=True)
+
         # --- 5. INTERACTIVE CHART (WITH TECHNICAL INDICATORS) ---
         st.subheader(f"Interactive Chart: {ticker_input}")
         tradingview_widget = f"""
