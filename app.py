@@ -12,7 +12,7 @@ def fetch_stock_data(ticker):
     return stock.info
 
 # --- 1. PAGE CONFIGURATION ---
-st.set_page_config(layout="wide", page_title="Cicim Bot Pro", page_icon="📈")
+st.set_page_config(layout="wide", page_title="Familio", page_icon="📈")
 st.title("📈 Familio AI Bot Stock Analysis")
 
 def get_rating(val, metric_type):
