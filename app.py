@@ -5,9 +5,11 @@ import plotly.graph_objects as go
 from google import genai
 
 # --- 1. PAGE CONFIGURATION ---
-st.set_set_page_config(layout="wide", page_title="Cicim Bot Pro")
+# FIXED: Removed the extra "set" from the function name
+st.set_page_config(layout="wide", page_title="Cicim Bot Pro")
 st.title("🤖 Cicim Bot: Professional Stock Analysis")
 
+# ... rest of the code stays the same
 # --- 2. RATING LOGIC ---
 def get_rating(val, metric_type):
     """Calculates status and points for the overall score (Total 100 pts / 5 metrics = 20 pts each)"""
