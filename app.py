@@ -127,22 +127,28 @@ if run_btn:
                     * **Debt/Equity < 0.8:** Low financial risk.
                     """)
 
-                        # --- 6. EDUCATIONAL FOOTER ---
-            st.divider()
-            with st.expander("🚦 How to Read the Ratings & Methodology"):
-                st.markdown("""
-                ### 📊 Understanding the Metrics
-                * **Valuation (P/E):** Compares share price to earnings. 
-                    * *✅ Good Value (<20):* The stock is "on sale" compared to its profits.
-                    * *⚠️ Pricey (>35):* You are paying a high premium for every $1 of profit.
-                * **Efficiency (ROE):** Shows how well the company uses your money to make profit.
-                    * *🔥 High Power (>20%):* Exceptional management and high profitability.
-                    * *🐌 Slow (<10%):* The company is struggling to generate returns on shareholder capital.
-                * **Safety (Debt/Equity):** Measures financial risk.
-                    * *🛡️ Very Safe (<0.5):* The company has very little debt compared to its assets.
-                    * *🚩 Risky Debt (>1.5):* The company is heavily leveraged; risky if interest rates rise.
-                
-                **Overall Verdict:** {total_status} ({total_score}/100)
-                """)
+                 ### 📊 Understanding the Metrics
+
+* **Valuation (P/E):** Compares share price to earnings. 
+    * ✅ *Good Value (<20):* The stock is "on sale" compared to its profits.
+    * ⚠️ *Pricey (>35):* You are paying a high premium for every $1 of profit.
+
+* **Revenue Multiple (P/S):** Measures price against total sales. 
+    * ✅ *Fair Sales (<2.0):* You are paying a low multiple for the company's revenue generation.
+    * ⚠️ *High Premium (>5.0):* Common in "hype" stocks; expectations for future growth are extremely high.
+
+* **Asset Value (P/B):** Compares market price to the company's "book value" (net assets).
+    * ✅ *Undervalued (<1.5):* The stock is trading close to the value of its physical assets.
+    * ⚠️ *Asset Heavy (>4.0):* The market is valuing the "brand" or "intellectual property" much higher than physical assets.
+
+* **Efficiency (ROE):** Shows how well the company uses your money to make profit.
+    * 🔥 *High Power (>20%):* Exceptional management and high profitability.
+    * 🐌 *Slow (<10%):* The company is struggling to generate returns on shareholder capital.
+
+* **Safety (Debt/Equity):** Measures financial risk.
+    * 🛡️ *Very Safe (<0.5):* The company has very little debt compared to its assets.
+    * 🚩 *Risky Debt (>1.5):* The company is heavily leveraged; risky if interest rates rise.
+
+**Overall Verdict:** {total_status} ({total_score}/100)
         except Exception as e:
             st.error(f"Error processing {ticker_input}: {e}")
