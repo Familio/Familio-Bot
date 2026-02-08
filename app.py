@@ -132,22 +132,6 @@ if run_btn or ticker_input:
         })
         st.table(df_display)
 
-        # --- 9. NEWS FEED (FIXED FOR KEYERROR) ---
-        st.subheader(f"📰 Latest News: {ticker_input}")
-        try:
-            news = stock.news
-            if not news:
-                st.info("No recent news headlines available.")
-            else:
-                for item in news[:5]:
-                    title = item.get('title', 'Headline Unavailable')
-                    link = item.get('link', 'https://finance.yahoo.com')
-                    publisher = item.get('publisher', 'Unknown Source')
-                    st.markdown(f"**[{title}]({link})**")
-                    st.caption(f"Source: {publisher}")
-        except Exception:
-            st.warning("News feed temporarily unavailable.")
-
         # --- 10. METHODOLOGY ---
         with st.expander("🚦 Deep Dive: Analytical Framework & Scoring Logic"):
             st.markdown(fr"""
