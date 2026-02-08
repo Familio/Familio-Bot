@@ -155,7 +155,22 @@ if run_btn or ticker_input:
         </div>
         """
         components.html(tradingview_widget, height=520)
+        
+ # --- 6. CHART & TABLE ---
+        st.divider()
+        tradingview_widget = f"""
+        <div class="tradingview-widget-container"><div id="tv_chart"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+        <script type="text/javascript">new TradingView.widget({{"width": "100%", "height": 400, "symbol": "{ticker_input}", "interval": "D", "theme": "light"}});</script></div>
+        """
+        components.html(tradingview_widget, height=420)
 
+        df_display = pd.DataFrame({
+            "Metric": ["P/E (TTM)", "Forward P/E", "ROE %", "Debt/Equity", "P/S Ratio", "P/B Ratio"],
+            "Value": [f"{pe:.2f}" if pe else "N/A", f"{f_pe:.2f}" if f_pe else "N/A", f"{roe:.2f}%", f"{debt:.2f}", f"{ps:.2f}", f"{pb:.2f}"],
+            "Rating": [l_pe, l_fpe, l_roe, l_debt, l_ps, l_pb]
+        })
+        st.table(df_display)
          # --- 6. SAFETY & SENTIMENT METRICS ---
         st.write("### 🛡️ Safety & Sentiment Overview")
         col_s1, col_s2, col_s3 = st.columns(3)
