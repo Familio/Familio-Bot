@@ -114,16 +114,6 @@ if run_btn:
                 df_display = pd.DataFrame(full_data).astype(str)
                 st.table(df_display)
 
-                # --- 7. AI VERDICT ---
-                with st.spinner("AI analyzing all metrics..."):
-                    client = genai.Client(api_key=api_key)
-                    prompt = (f"Analyze {ticker_input}. P/E: {f_pe}, P/S: {ps_ratio}, P/B: {pb_ratio}, "
-                             f"ROE: {roe}%, Debt/Equity: {debt}. Total Score: {total_score}/100. "
-                             "Provide a brief, professional investment summary.")
-                    response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
-                    st.info("🤖 AI Executive Verdict")
-                    st.write(response.text)
-
                 # --- 8. METHODOLOGY ---
                 with st.expander("🚦 How to Read the Ratings & Methodology"):
                     st.markdown(f"""
