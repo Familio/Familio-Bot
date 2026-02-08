@@ -113,16 +113,29 @@ if run_btn:
                 
                 df_display = pd.DataFrame(full_data).astype(str)
                 st.table(df_display)
- # --- EDUCATIONAL FOOTER ---
-            st.divider()
-            with st.expander("🚦 Methodology & Evaluation Breakdown"):
-                st.markdown(f"""
-                **How your {total_score}/100 score is calculated:**
-                1. **Valuation (33 pts):** Points awarded if Forward P/E is under 20.
-                2. **Efficiency (34 pts):** Points awarded if ROE is above 18%.
-                3. **Safety (33 pts):** Points awarded if Debt/Equity is below 0.8.
-                """)
-                    # --- 6. EDUCATIONAL FOOTER ---
+
+                # --- 7. AI VERDICT ---
+                with st.spinner("AI analyzing all metrics..."):
+                    client = genai.Client(api_key=api_key)
+                    prompt = (f"Analyze {ticker_input}. P/E: {f_pe}, P/S: {ps_ratio}, P/B: {pb_ratio}, "
+                             f"ROE: {roe}%, Debt/Equity: {debt}. Total Score: {total_score}/100. "
+                             "Provide a brief, professional investment summary.")
+                    response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+                    st.info("🤖 AI Executive Verdict")
+                    st.write(response.text)
+
+                # --- 8. METHODOLOGY ---
+                with st.expander("🚦 Methodology Breakdown"):
+                    st.markdown("""
+                    Each metric contributes up to **20 points**:
+                    * **P/E < 20:** Good value.
+                    * **P/S < 2:** Healthy revenue multiple.
+                    * **P/B < 1.5:** Trading close to asset value.
+                    * **ROE > 18%:** Highly efficient management.
+                    * **Debt/Equity < 0.8:** Low financial risk.
+                    """)
+
+                        # --- 6. EDUCATIONAL FOOTER ---
             st.divider()
             with st.expander("🚦 How to Read the Ratings & Methodology"):
                 st.markdown("""
