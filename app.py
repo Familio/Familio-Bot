@@ -132,24 +132,49 @@ if run_btn or ticker_input:
         })
         st.table(df_display)
 
-        # --- 10. METHODOLOGY ---
-        with st.expander("🚦 Deep Dive: Analytical Framework & Scoring Logic"):
+       # --- 10. EXPANDED METHODOLOGY ---
+        with st.expander("🚦 Full Methodology & Indicator Explanations"):
             st.markdown(fr"""
-            ### 📜 Methodology Overview
-            This tool uses a **Weighted Simple Additive Scoring (WSAS)** model.
-            
-            #### 1. The Dual-Score Approach
-            * **Classic Analysis:** Based on Graham's Value principles. Includes **P/B** (20% weight per metric).
-            * **Modern Analysis:** Tailored for the Intangible Era. Excludes **P/B** (25% weight per metric).
+            ### 📊 The Rating System
+            The **Cicim Bot** uses two scoring models to assess a stock's health:
+            - **Classic Score (Value):** Assigns **20 points** to each of the 5 pillars (PE, PS, PB, ROE, Debt). Ideal for manufacturing and banking.
+            - **Modern Score (Growth):** Assigns **25 points** to 4 pillars, excluding **Price-to-Book (P/B)**. Preferred for software and AI companies where physical assets are less relevant.
 
             ---
 
-            ### 🧪 The Five Pillars
-            1. **P/E Ratio:** Measures valuation vs. profit. Benchmark: < 20 is "Value".
-            2. **P/S Ratio:** Valuation vs. Revenue. Critical for growth tech.
-            3. **P/B Ratio:** Valuation vs. Assets. Benchmark: 1.0 is "Book Value".
-            4. **ROE % (Efficiency):** $ROE = \frac{{\text{{Net Income}}}}{{\text{{Shareholders' Equity}}}}$
-            5. **Debt-to-Equity:** Measures leverage. < 0.8 is conservative/safe.
+            ### 🔍 Indicator Explanations
+            
+            #### 1. Price-to-Earnings (P/E) Ratio
+            * **Definition:** Compares stock price to earnings per share (EPS). It shows how many dollars investors pay for each dollar of profit.
+            * **Rating:**
+                * **✅ Good Value (< 20):** Often indicates undervaluation or a bargain price.
+                * **⚖️ Average (20–40):** Fairly priced for moderate growth.
+                * **⚠️ Pricey (> 40):** High expectations; risk of being overvalued.
+
+            #### 2. Price-to-Sales (P/S) Ratio
+            * **Definition:** Compares market cap to total revenue. Critical for growing companies that aren't profitable yet.
+            * **Rating:**
+                * **✅ Fair Sales (< 2.0):** Generally considered a healthy, low valuation.
+                * **⚠️ High Premium (> 5.0):** Investors are paying a massive premium for revenue.
+
+            #### 3. Price-to-Book (P/B) Ratio
+            * **Definition:** Compares stock price to the "book value" (assets minus liabilities).
+            * **Rating:**
+                * **💎 Undervalued (< 1.5):** Trading close to its liquidation value.
+                * **⚠️ Asset Heavy (> 4.0):** High valuation relative to physical assets.
+
+            #### 4. Return on Equity (ROE)
+            * **Formula:** $ROE = \frac{{\text{{Net Income}}}}{{\text{{Shareholders' Equity}}}}$
+            * **Definition:** Measures how efficiently management generates profit using shareholder capital.
+            * **Rating:**
+                * **🔥 High Power (> 18%):** Exceptional management efficiency.
+                * **🐌 Slow (< 8%):** Management is struggling to grow investor money.
+
+            #### 5. Debt-to-Equity (D/E)
+            * **Definition:** Measures financial leverage and risk. High ratios mean the company relies heavily on borrowed money.
+            * **Rating:**
+                * **🛡️ Very Safe (< 0.8):** Conservative balance sheet; low risk of bankruptcy.
+                * **🚩 Risky Debt (> 1.6):** High leverage; vulnerable during economic downturns.
             """)
     except Exception as e:
-        st.error(f"Error analyzing {ticker_input}: {e}")
+        st.error(f"Error: {e}")
