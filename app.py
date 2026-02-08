@@ -7,32 +7,40 @@ import streamlit.components.v1 as components
 st.set_page_config(layout="wide", page_title="Cicim Bot Pro", page_icon="📈")
 st.title("📈 Cicim Bot: Professional Stock Analysis")
 
-# --- 2. DUAL-MODE RATING LOGIC ---
 def get_rating(val, metric_type):
     """Calculates scores based on standard financial benchmarks."""
+    # 1. Handle missing data first
     if val == "N/A" or val is None or val == 0: 
         return "⚪ Neutral", 0, 0
     
-    if metric_type == "PE":
+    # 2. Handle P/E and Forward P/E (FPE)
+    if metric_type in ["PE", "FPE"]:
         if val < 20: return "✅ Good Value", 20, 25
         if val < 40: return "⚖️ Average", 10, 12
         return "⚠️ Pricey", 0, 0
+        
     if metric_type == "ROE":
         if val > 18: return "🔥 High Power", 20, 25
         if val > 8: return "⚖️ Average", 10, 12
         return "🐌 Slow", 0, 0
+        
     if metric_type == "DEBT":
         if val < 0.8: return "🛡️ Very Safe", 20, 25
         if val < 1.6: return "⚖️ Average", 10, 12
         return "🚩 Risky Debt", 0, 0
+        
     if metric_type == "PS":
         if val < 2.0: return "✅ Fair Sales", 20, 25
         if val < 5.0: return "⚖️ Moderate", 10, 12
         return "⚠️ High Premium", 0, 0
+        
     if metric_type == "PB":
         if val < 1.5: return "💎 Undervalued", 20, 0
         if val < 4.0: return "⚖️ Fair Assets", 10, 0
         return "⚠️ Asset Heavy", 0, 0
+
+    # 2.1 Safety Fallback (Prevents the Unpacking Error)
+    return "⚪ Neutral", 0, 0
 
 # --- 3. SIDEBAR (WATCHLIST & SEARCH) ---
 with st.sidebar:
