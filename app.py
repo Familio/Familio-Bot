@@ -5,12 +5,13 @@ import plotly.graph_objects as go
 from google import genai
 
 # --- 1. PAGE CONFIGURATION ---
-st.set_set_page_config(layout="wide", page_title="Cicim Bot Pro")
+# FIXED: Changed from 'set_set_page_config' to 'set_page_config'
+st.set_page_config(layout="wide", page_title="Cicim Bot Pro")
 st.title("🤖 Cicim Bot: Professional Stock Analysis")
 
 # --- 2. RATING LOGIC ---
 def get_rating(val, metric_type):
-    """Calculates status and points for the overall score (Total 100 pts / 5 metrics = 20 pts each)"""
+    """Calculates status and points for the overall score (20 pts each)"""
     if val == "N/A" or val is None or val == 0: 
         return "⚪ Neutral", 0
     
@@ -64,13 +65,13 @@ if run_btn:
                 mkt_cap = info.get('marketCap', 0)
                 trailing_pe = info.get('trailingPE')
                 f_pe = info.get('forwardPE')
-                roe = info.get('returnOnEquity', 0) * 100
-                debt = info.get('debtToEquity', 0) / 100
+                roe = (info.get('returnOnEquity', 0) or 0) * 100
+                debt = (info.get('debtToEquity', 0) or 0) / 100
                 ps_ratio = info.get('priceToSalesTrailing12Months')
                 pb_ratio = info.get('priceToBook')
                 cap_str = f"${mkt_cap/1e12:.2f}T" if mkt_cap >= 1e12 else f"${mkt_cap/1e9:.2f}B"
 
-                # 4b. Calculate Individual & Total Scores (20 pts each)
+                # 4b. Calculate Individual & Total Scores
                 pe_label, pe_score = get_rating(f_pe if f_pe else trailing_pe, "PE")
                 roe_label, roe_score = get_rating(roe, "ROE")
                 debt_label, debt_score = get_rating(debt, "DEBT")
@@ -79,12 +80,11 @@ if run_btn:
                 
                 total_score = pe_score + roe_score + debt_score + ps_score + pb_score
                 
-                # Determine Status
                 if total_score >= 80: total_status = "💎 Strong Buy Candidate"
                 elif total_score >= 50: total_status = "⚖️ Average / Hold"
                 else: total_status = "🚩 High Risk / Avoid"
 
-                # --- 5. VISUALS: CANDLE CHART ---
+                # --- 5. VISUALS ---
                 st.subheader(f"Price Action: {ticker_input}")
                 fig = go.Figure(data=[go.Candlestick(
                     x=hist.index,
@@ -94,7 +94,7 @@ if run_btn:
                 fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_white", height=400)
                 st.plotly_chart(fig, use_container_width=True)
 
-                # --- 6. THE DATA TABLE ---
+                # --- 6. DATA TABLE ---
                 st.divider()
                 st.subheader("Fundamental Scorecard")
                 
@@ -125,14 +125,16 @@ if run_btn:
                     st.write(response.text)
 
                 # --- 8. METHODOLOGY ---
-                with st.expander("🚦 Methodology Breakdown"):
-                    st.markdown("""
-                    Each metric contributes up to **20 points**:
-                    * **P/E < 20:** Good value.
-                    * **P/S < 2:** Healthy revenue multiple.
-                    * **P/B < 1.5:** Trading close to asset value.
-                    * **ROE > 18%:** Highly efficient management.
-                    * **Debt/Equity < 0.8:** Low financial risk.
+                with st.expander("🚦 How to Read the Ratings & Methodology"):
+                    st.markdown(f"""
+                    ### 📊 Understanding the Metrics
+                    * **Valuation (P/E):** Price to Earnings.
+                    * **Revenue (P/S):** Price to Sales multiple.
+                    * **Assets (P/B):** Price to Book value.
+                    * **Efficiency (ROE):** Management use of capital.
+                    * **Safety (D/E):** Debt levels.
+
+                    **Current Score:** {total_score}/100
                     """)
 
         except Exception as e:
