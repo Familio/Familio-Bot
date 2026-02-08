@@ -102,13 +102,5 @@ if run_btn:
                 df_display = pd.DataFrame(full_data).astype(str)
                 st.table(df_display)
 
-                # --- 7. AI VERDICT ---
-                with st.spinner("AI analyzing fundamentals..."):
-                    client = genai.Client(api_key=api_key)
-                    prompt = f"Stock: {ticker_input}. Score: {total_score}/100. ROE: {roe}%. Debt: {debt}. P/E: {f_pe}. Summary verdict?"
-                    response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
-                    st.info("🤖 AI Executive Verdict")
-                    st.write(response.text)
-
         except Exception as e:
             st.error(f"Error processing {ticker_input}: {e}")
