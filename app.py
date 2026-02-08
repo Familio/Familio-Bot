@@ -237,7 +237,7 @@ if run_btn or ticker_input:
 
         with tab3:
             st.markdown(fr"""
-            ### How the "Cicim Verdict" is Calculated
+            ### How the "Naim Verdict" is Calculated
             The bot uses a weighted algorithm to ensure we don't buy a "cheap" stock that is actually dying, or an "expensive" stock that is a rocket ship.
             
             #### 1. The Math
