@@ -4,15 +4,11 @@ import pandas as pd
 import streamlit.components.v1 as components
 
 # --- 1. PAGE CONFIGURATION ---
-st.set_page_config(layout="wide", page_title="Cicim Bot Pro: Advanced Analysis")
+st.set_page_config(layout="wide", page_title="Cicim Bot Pro")
 st.title("📈 Cicim Bot: Professional Stock Analysis")
 
 # --- 2. DUAL-MODE RATING LOGIC ---
 def get_rating(val, metric_type):
-    """
-    Returns: (Label, Score_Out_Of_20, Score_Out_Of_25)
-    Logic: Scoring is based on historical S&P 500 averages and value investing principles.
-    """
     if val == "N/A" or val is None or val == 0: 
         return "⚪ Neutral", 0, 0
     
@@ -42,7 +38,6 @@ with st.sidebar:
     st.header("Search")
     ticker_input = st.text_input("Enter Ticker Symbol", "TSM").upper()
     run_btn = st.button("🚀 Analyze Stock")
-    st.info("The Modern Score is recommended for Tech and SaaS sectors.")
 
 # --- 4. MAIN APP LOGIC ---
 if run_btn:
@@ -57,7 +52,7 @@ if run_btn:
         roe = (info.get('returnOnEquity', 0) or 0) * 100
         debt = (info.get('debtToEquity', 0) or 0) / 100
 
-        # 4b. Multi-System Scoring
+        # 4b. Scoring
         l_pe, s20_pe, s25_pe = get_rating(pe, "PE")
         l_ps, s20_ps, s25_ps = get_rating(ps, "PS")
         l_pb, s20_pb, _      = get_rating(pb, "PB")
@@ -98,47 +93,33 @@ if run_btn:
         })
         st.table(df_display)
 
-        # --- 8. DETAILED METHODOLOGY EXPANDER ---
+        # --- 8. DETAILED METHODOLOGY (Fixed Syntax) ---
         with st.expander("🚦 Deep Dive: Analytical Framework & Scoring Logic"):
-            st.markdown(f"""
+            # Using fr"" to handle both f-string variables and raw LaTeX backslashes
+            st.markdown(fr"""
             ### 📜 Methodology Overview
-            This tool applies a **Weighted Simple Additive Scoring (WSAS)** model to evaluate fundamental health. It converts complex financial ratios into a standardized 100-point scale.
+            This tool uses a **Weighted Simple Additive Scoring (WSAS)** model.
             
             #### 1. The Dual-Score Approach
-            * **Classic Analysis (20% weight per metric):** Based on Benjamin Graham’s "Value" principles. It includes the **Price-to-Book (P/B)** ratio, assuming that a company's physical assets provide a safety net for shareholders.
-            * **Modern Analysis (25% weight per metric):** Tailored for the "Intangible Era." It excludes **P/B** because software, patents, and brand power—often the most valuable assets of tech companies like TSM—are frequently undervalued or missing on traditional balance sheets.
+            * **Classic Analysis:** Based on Graham's Value principles. Includes **P/B** (20% weight per metric).
+            * **Modern Analysis:** Tailored for the Intangible Era. Excludes **P/B** (25% weight per metric).
 
             ---
 
-            ### 🧪 The Five Pillars of Analysis
-            
-            
-            1.  **P/E Ratio (Valuation vs. Profit):**
-                * *Logic:* Measures how much investors pay for $1 of annual profit.
-                * *Benchmark:* < 20 is historically considered "Value," while > 40 suggests high growth expectations or "Bubble" pricing.
-            
-            2.  **P/S Ratio (Valuation vs. Revenue):**
-                * *Logic:* Essential for companies that are reinvesting all profits into growth.
-                * *Benchmark:* < 2.0 is highly efficient. > 5.0 indicates you are paying a massive premium for every dollar of sales.
-
-            3.  **P/B Ratio (Valuation vs. Assets):**
-                * *Logic:* Calculates the "Liquidation Value."
-                * *Benchmark:* A ratio of 1.0 means you are buying the company for exactly what its assets are worth on paper.
-
-            4.  **ROE % (Operational Efficiency):**
-                * *Formula:* $ROE = \\frac{\\text{Net Income}}{\\text{Shareholders' Equity}}$
-                * *Logic:* Shows how much profit management generates with the money shareholders have invested. An ROE > 18% indicates a "Moat" or strong competitive advantage.
-
-            5.  **Debt-to-Equity (Financial Risk):**
-                * *Logic:* Measures leverage. A score of 1.0 means the company has $1 of debt for every $1 of equity. 
-                * *Benchmark:* < 0.8 is conservative and safe. > 1.6 indicates high risk of bankruptcy during economic downturns.
+            ### 🧪 The Five Pillars
+            1. **P/E Ratio:** Measures valuation vs. profit. Benchmark: < 20 is "Value".
+            2. **P/S Ratio:** Valuation vs. Revenue. Critical for growth tech. Benchmark: < 2.0.
+            3. **P/B Ratio:** Valuation vs. Assets. Benchmark: 1.0 is "Book Value".
+            4. **ROE % (Efficiency):** $ROE = \frac{{\text{{Net Income}}}}{{\text{{Shareholders' Equity}}}}$
+               Shows how effectively management reinvests your capital.
+            5. **Debt-to-Equity:** Measures leverage. < 0.8 is conservative/safe.
 
             ---
 
             ### 📊 Verdict Tiers
-            * **80 - 100:** 💎 **Strong Fundamental Strength.** High probability of being a "Quality" or "Compounder" stock.
-            * **50 - 75:** ⚖️ **Fair / Hold.** Good business, but either slightly expensive or carrying moderate risk.
-            * **Below 50:** 🚩 **Speculative / High Risk.** Significant fundamental flaws or extreme overvaluation.
+            * **80 - 100:** 💎 **Strong Fundamental Strength.**
+            * **50 - 75:** ⚖️ **Fair / Hold.**
+            * **Below 50:** 🚩 **Speculative / High Risk.**
             """)
     except Exception as e:
         st.error(f"Error analyzing {ticker_input}: {e}")
