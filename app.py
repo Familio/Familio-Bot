@@ -65,68 +65,58 @@ with st.sidebar:
 # --- 4. MAIN APP LOGIC ---
 if run_btn or ticker_input:
     try:
+        # Initialize Ticker
         stock = yf.Ticker(ticker_input)
         info = stock.info
 
-        # 4a. Basic Metrics
+        # 4a. Basic Metrics Extraction
         pe = info.get('trailingPE')
         ps = info.get('priceToSalesTrailing12Months')
         pb = info.get('priceToBook')
         roe = (info.get('returnOnEquity', 0) or 0) * 100
         debt = (info.get('debtToEquity', 0) or 0) / 100
 
-        # 4b. Safety & Sentiment (NEW OVERVIEW METRICS)
+        # 4b. Safety & Sentiment Overview
         div_yield = (info.get('dividendYield', 0) or 0) * 100
         payout = (info.get('payoutRatio', 0) or 0) * 100
         target = info.get('targetMeanPrice')
         curr_price = info.get('currentPrice', 1)
         upside = ((target / curr_price) - 1) * 100 if target else 0
 
-        # 4c. Scoring Calculation
+        # 4c. ESG & Sustainability Extraction (NEW)
+        try:
+            sus = stock.sustainability
+            if sus is not None and not sus.empty:
+                # Lower is better on the Sustainalytics Risk Scale
+                esg_score = sus.loc['totalEsg', 'Value']
+                env_score = sus.loc['environmentScore', 'Value']
+                soc_score = sus.loc['socialScore', 'Value']
+                gov_score = sus.loc['governanceScore', 'Value']
+                
+                # Assign visual risk level
+                if esg_score < 20: esg_label, esg_color = "🌿 Low Risk", "normal"
+                elif esg_score < 35: esg_label, esg_color = "⚖️ Medium Risk", "off"
+                else: esg_label, esg_color = "🚩 High Risk", "inverse"
+            else:
+                esg_score = env_score = soc_score = gov_score = None
+                esg_label, esg_color = "N/A", "off"
+        except:
+            esg_score = env_score = soc_score = gov_score = None
+            esg_label, esg_color = "N/A", "off"
+
+        # 4d. Scoring Engine (Calculates ratings and points)
         l_pe, s20_pe, s25_pe = get_rating(pe, "PE")
         l_ps, s20_ps, s25_ps = get_rating(ps, "PS")
         l_pb, s20_pb, _      = get_rating(pb, "PB")
         l_roe, s20_roe, s25_roe = get_rating(roe, "ROE")
         l_debt, s20_debt, s25_debt = get_rating(debt, "DEBT")
 
+        # Summing the scores for both methodologies
         classic_total = s20_pe + s20_ps + s20_pb + s20_roe + s20_debt
         modern_total = s25_pe + s25_ps + s25_roe + s25_debt
 
-        # --- 1. NEW ESG EXTRACTION LOGIC (Add inside Section 4) ---
-try:
-    sus = stock.sustainability
-    if sus is not None and not sus.empty:
-        # Extracting the three main pillar scores
-        esg_score = sus.loc['totalEsg', 'Value']
-        env_score = sus.loc['environmentScore', 'Value']
-        soc_score = sus.loc['socialScore', 'Value']
-        gov_score = sus.loc['governanceScore', 'Value']
-        
-        # Rating Logic: Lower is often better in some ESG frameworks (Risk Rating)
-        # We will treat it as a Risk Score where 0-20 is Low Risk
-        if esg_score < 20: esg_label, esg_color = "🌿 Low Risk", "normal"
-        elif esg_score < 35: esg_label, esg_color = "⚖️ Medium Risk", "off"
-        else: esg_label, esg_color = "🚩 High Risk", "inverse"
-    else:
-        esg_score = env_score = soc_score = gov_score = None
-        esg_label = "N/A"
-except:
-    esg_score = None
-    esg_label = "N/A"
-
-# --- 2. ESG UI DISPLAY (Add after Safety & Sentiment) ---
-st.write("---")
-st.subheader("🌍 Sustainability & ESG Risk")
-if esg_score:
-    e1, e2, e3, e4 = st.columns(4)
-    e1.metric("Total ESG Risk", f"{esg_score:.1f}", delta=esg_label, delta_color=esg_color)
-    e2.metric("Environment", f"{env_score:.1f}")
-    e3.metric("Social", f"{soc_score:.1f}")
-    e4.metric("Governance", f"{gov_score:.1f}")
-    st.caption("Note: Lower scores indicate lower unmanaged ESG risk (Sustainalytics scale).")
-else:
-    st.info("ESG Data not available for this ticker.")
-
+    except Exception as e:
+        st.error(f"⚠️ Error fetching data for {ticker_input}: {e}")
         # --- 5. INTERACTIVE CHART ---
         st.subheader(f"Interactive Chart: {ticker_input}")
         tradingview_widget = f"""
