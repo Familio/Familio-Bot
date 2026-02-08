@@ -13,7 +13,7 @@ def get_rating(val, metric_type):
     if val == "N/A" or val is None or val == 0: 
         return "⚪ Neutral", 0, 0
     
-    if metric_type in ["PE", "FPE"]: # P/E and Forward P/E share similar logic
+    if metric_type == "PE":
         if val < 20: return "✅ Good Value", 20, 25
         if val < 40: return "⚖️ Average", 10, 12
         return "⚠️ Pricey", 0, 0
@@ -34,12 +34,33 @@ def get_rating(val, metric_type):
         if val < 4.0: return "⚖️ Fair Assets", 10, 0
         return "⚠️ Asset Heavy", 0, 0
 
-# --- 3. SIDEBAR ---
+# --- 3. SIDEBAR (WATCHLIST & SEARCH) ---
 with st.sidebar:
     st.header("Search & Watchlist")
+    
+    # Text input for manual search
     ticker_input = st.text_input("Enter Ticker Symbol", "TSM").upper()
+    
+    st.write("---")
+    st.subheader("Quick Select")
+    
+    watchlist = {
+        "TSM": "Taiwan Semi",
+        "NVDA": "NVIDIA",
+        "AAPL": "Apple",
+        "MSFT": "Microsoft",
+        "GOOGL": "Alphabet",
+        "META": "Meta"
+    }
+    
+    # If a button is clicked, we update the search box indirectly
+    for symbol, name in watchlist.items():
+        if st.button(f"{symbol} ({name})", use_container_width=True):
+            ticker_input = symbol 
+            
     st.write("---")
     run_btn = st.button("🚀 Analyze Stock", type="primary", use_container_width=True)
+    st.info("The Modern Score is recommended for Tech and SaaS sectors.")
 
 # --- 4. MAIN APP LOGIC ---
 if run_btn or ticker_input:
@@ -55,7 +76,14 @@ if run_btn or ticker_input:
         roe = (info.get('returnOnEquity', 0) or 0) * 100
         debt = (info.get('debtToEquity', 0) or 0) / 100
 
-        # 4b. Scoring Calculation
+         # 4b. Safety & Sentiment (NEW OVERVIEW METRICS)
+        div_yield = (info.get('dividendYield', 0) or 0) * 100
+        payout = (info.get('payoutRatio', 0) or 0) * 100
+        target = info.get('targetMeanPrice')
+        curr_price = info.get('currentPrice', 1)
+        upside = ((target / curr_price) - 1) * 100 if target else 0
+
+        # 4c. Scoring Calculation
         l_pe, s20_pe, s25_pe = get_rating(pe, "PE")
         l_fpe, _, _ = get_rating(f_pe, "FPE") # Added for table display
         l_ps, s20_ps, s25_ps = get_rating(ps, "PS")
