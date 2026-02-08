@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 
 # --- 1. PAGE CONFIGURATION ---
 st.set_page_config(layout="wide", page_title="Cicim Bot Pro", page_icon="📈")
-st.title("📈 Cicim Bot: Professional Stock Analysis")
+st.title("📈 Familio AI Bot Stock Analysis")
 
 def get_rating(val, metric_type):
     """Calculates scores based on standard financial benchmarks."""
