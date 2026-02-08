@@ -175,6 +175,29 @@ if run_btn or ticker_input:
             * **Rating:**
                 * **🛡️ Very Safe (< 0.8):** Conservative balance sheet; low risk of bankruptcy.
                 * **🚩 Risky Debt (> 1.6):** High leverage; vulnerable during economic downturns.
+          ---
+
+                ### 🛡️ Safety & Sentiment Methodology
+
+            #### 1. Dividend Yield
+            - **Formula:** $\text{{Annual Div per Share}} / \text{{Stock Price}}$
+            - **Explanation:** Measures the cash return you get just for owning the stock.
+            - **Rating Philosophy:** - **2% - 4%:** Usually the "Sweet Spot" for stable growth + income.
+                - **> 6%:** **Red Flag Warning.** Often indicates a "Yield Trap" where the stock price has crashed due to fundamental trouble, making the yield look artificially high.
+
+            #### 2. Payout Ratio
+            - **Formula:** $\text{{Total Dividends}} / \text{{Net Income}}$
+            - **Explanation:** The percentage of earnings a company pays out as dividends.
+            - **Rating Philosophy:**
+                - **< 50%:** **Excellent.** Plenty of room to grow dividends and reinvest in the business.
+                - **50% - 75%:** **Healthy.** Common for mature companies (Utilities, Staples).
+                - **> 75%:** **Danger.** If earnings drop slightly, the company may be forced to cut the dividend to save cash.
+
+            #### 3. Analyst Upside (Price Targets)
+            - **Formula:** $(\text{{Average Target Price}} / \text{{Current Price}}) - 1$
+            - **Explanation:** The consensus of Wall Street experts on where the stock will be in 12 months.
+            - **Rating Philosophy:** - **Positive Upside:** Market sentiment suggests the stock is currently undervalued.
+                - **Negative Upside:** The stock may have "run too hot" and is trading above what analysts believe is its fair value.
             """)
     except Exception as e:
         st.error(f"Error: {e}")
