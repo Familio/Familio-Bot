@@ -4,12 +4,15 @@ import pandas as pd
 import streamlit.components.v1 as components
 
 # --- 1. PAGE CONFIGURATION ---
-st.set_page_config(layout="wide", page_title="Cicim Bot Pro: Yahoo Edition")
-st.title("📈 Cicim Bot: Professional Dual-Score Analysis")
+st.set_page_config(layout="wide", page_title="Cicim Bot Pro: Advanced Analysis")
+st.title("📈 Cicim Bot: Professional Stock Analysis")
 
 # --- 2. DUAL-MODE RATING LOGIC ---
 def get_rating(val, metric_type):
-    """Returns: (Label, Score_Out_Of_20, Score_Out_Of_25)"""
+    """
+    Returns: (Label, Score_Out_Of_20, Score_Out_Of_25)
+    Logic: Scoring is based on historical S&P 500 averages and value investing principles.
+    """
     if val == "N/A" or val is None or val == 0: 
         return "⚪ Neutral", 0, 0
     
@@ -39,6 +42,7 @@ with st.sidebar:
     st.header("Search")
     ticker_input = st.text_input("Enter Ticker Symbol", "TSM").upper()
     run_btn = st.button("🚀 Analyze Stock")
+    st.info("The Modern Score is recommended for Tech and SaaS sectors.")
 
 # --- 4. MAIN APP LOGIC ---
 if run_btn:
@@ -47,7 +51,6 @@ if run_btn:
         info = stock.info
 
         # 4a. Metrics Extraction
-        sector = info.get('sector', 'N/A')
         pe = info.get('trailingPE')
         ps = info.get('priceToSalesTrailing12Months')
         pb = info.get('priceToBook')
@@ -64,27 +67,16 @@ if run_btn:
         classic_total = s20_pe + s20_ps + s20_pb + s20_roe + s20_debt
         modern_total = s25_pe + s25_ps + s25_roe + s25_debt
 
-        # --- 5. VISUAL INTERACTIVE CHART (Yahoo/TradingView Style) ---
-        st.subheader(f"Interactive Chart: {ticker_input}")
-        
-        # HTML/JS for TradingView Widget
+        # --- 5. INTERACTIVE CHART ---
+        st.subheader(f"TradingView Interactive: {ticker_input}")
         tradingview_widget = f"""
         <div class="tradingview-widget-container">
           <div id="tradingview_chart"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
           <script type="text/javascript">
           new TradingView.widget({{
-            "width": "100%",
-            "height": 500,
-            "symbol": "{ticker_input}",
-            "interval": "D",
-            "timezone": "Etc/UTC",
-            "theme": "light",
-            "style": "1",
-            "locale": "en",
-            "toolbar_bg": "#f1f3f6",
-            "enable_publishing": false,
-            "allow_symbol_change": true,
+            "width": "100%", "height": 500, "symbol": "{ticker_input}",
+            "interval": "D", "theme": "light", "style": "1", "locale": "en",
             "container_id": "tradingview_chart"
           }});
           </script>
@@ -96,30 +88,57 @@ if run_btn:
         st.divider()
         c1, c2 = st.columns(2)
         c1.metric("Classic Score (Includes P/B)", f"{classic_total}/100")
-        c2.metric("Modern Score (Excludes P/B)", f"{modern_total}/100")
+        c2.metric("Modern Score (NO P/B)", f"{modern_total}/100")
 
         # --- 7. DATA TABLE ---
         df_display = pd.DataFrame({
-            "Indicator": ["P/E (TTM)", "P/S Ratio", "P/B Ratio", "ROE %", "Debt/Equity"],
-            "Current Value": [f"{pe:.2f}" if pe else "N/A", f"{ps:.2f}" if ps else "N/A", f"{pb:.2f}" if pb else "N/A", f"{roe:.2f}%", f"{debt:.2f}"],
-            "Health Status": [l_pe, l_ps, l_pb, l_roe, l_debt]
+            "Metric": ["P/E (TTM)", "P/S Ratio", "P/B Ratio", "ROE %", "Debt/Equity"],
+            "Value": [f"{pe:.2f}" if pe else "N/A", f"{ps:.2f}" if ps else "N/A", f"{pb:.2f}" if pb else "N/A", f"{roe:.2f}%", f"{debt:.2f}"],
+            "Rating": [l_pe, l_ps, l_pb, l_roe, l_debt]
         })
         st.table(df_display)
 
-        # --- 8. DETAILED METHODOLOGY ---
-        with st.expander("🚦 Deep Dive: Scoring Methodology & Indicators"):
+        # --- 8. DETAILED METHODOLOGY EXPANDER ---
+        with st.expander("🚦 Deep Dive: Analytical Framework & Scoring Logic"):
             st.markdown(f"""
-            ### 🏆 Dual-Score System
-            1. **Classic Score ({classic_total}/100):** Uses all 5 metrics equally (**20 pts each**).
-            2. **Modern Score ({modern_total}/100):** Skips **P/B Ratio**. Remaining 4 metrics are worth **25 pts each**.
+            ### 📜 Methodology Overview
+            This tool applies a **Weighted Simple Additive Scoring (WSAS)** model to evaluate fundamental health. It converts complex financial ratios into a standardized 100-point scale.
             
-            | Indicator | ✅ High Points | ⚖️ Mid Points | ⚠️ 0 Points |
-            | :--- | :--- | :--- | :--- |
-            | **P/E Ratio** | < 20 | 20 - 40 | > 40 |
-            | **P/S Ratio** | < 2.0 | 2.0 - 5.0 | > 5.0 |
-            | **P/B Ratio** | < 1.5 | 1.5 - 4.0 | > 4.0 |
-            | **ROE %** | > 18% | 8% - 18% | < 8% |
-            | **Debt/Equity**| < 0.8 | 0.8 - 1.6 | > 1.6 |
+            #### 1. The Dual-Score Approach
+            * **Classic Analysis (20% weight per metric):** Based on Benjamin Graham’s "Value" principles. It includes the **Price-to-Book (P/B)** ratio, assuming that a company's physical assets provide a safety net for shareholders.
+            * **Modern Analysis (25% weight per metric):** Tailored for the "Intangible Era." It excludes **P/B** because software, patents, and brand power—often the most valuable assets of tech companies like TSM—are frequently undervalued or missing on traditional balance sheets.
+
+            ---
+
+            ### 🧪 The Five Pillars of Analysis
+            
+            
+            1.  **P/E Ratio (Valuation vs. Profit):**
+                * *Logic:* Measures how much investors pay for $1 of annual profit.
+                * *Benchmark:* < 20 is historically considered "Value," while > 40 suggests high growth expectations or "Bubble" pricing.
+            
+            2.  **P/S Ratio (Valuation vs. Revenue):**
+                * *Logic:* Essential for companies that are reinvesting all profits into growth.
+                * *Benchmark:* < 2.0 is highly efficient. > 5.0 indicates you are paying a massive premium for every dollar of sales.
+
+            3.  **P/B Ratio (Valuation vs. Assets):**
+                * *Logic:* Calculates the "Liquidation Value."
+                * *Benchmark:* A ratio of 1.0 means you are buying the company for exactly what its assets are worth on paper.
+
+            4.  **ROE % (Operational Efficiency):**
+                * *Formula:* $ROE = \\frac{\\text{Net Income}}{\\text{Shareholders' Equity}}$
+                * *Logic:* Shows how much profit management generates with the money shareholders have invested. An ROE > 18% indicates a "Moat" or strong competitive advantage.
+
+            5.  **Debt-to-Equity (Financial Risk):**
+                * *Logic:* Measures leverage. A score of 1.0 means the company has $1 of debt for every $1 of equity. 
+                * *Benchmark:* < 0.8 is conservative and safe. > 1.6 indicates high risk of bankruptcy during economic downturns.
+
+            ---
+
+            ### 📊 Verdict Tiers
+            * **80 - 100:** 💎 **Strong Fundamental Strength.** High probability of being a "Quality" or "Compounder" stock.
+            * **50 - 75:** ⚖️ **Fair / Hold.** Good business, but either slightly expensive or carrying moderate risk.
+            * **Below 50:** 🚩 **Speculative / High Risk.** Significant fundamental flaws or extreme overvaluation.
             """)
     except Exception as e:
-        st.error(f"Analysis failed: {e}")
+        st.error(f"Error analyzing {ticker_input}: {e}")
