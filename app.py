@@ -84,4 +84,18 @@ if run_btn:
             }
             st.table(pd.DataFrame(df_data))
 
-            # --- 7. METHOD
+            # --- 7. METHODOLOGY ---
+            st.divider()
+            with st.expander("🚦 How to read these two scores"):
+                st.markdown(f"""
+                ### 1. Classic Score ({classic_total}/100)
+                * Uses all 5 metrics equally (20 points each).
+                * **Best for:** Banks, Manufacturing, and Retail.
+                
+                ### 2. Modern Score ({modern_total}/100)
+                * Skips the **P/B Ratio** entirely.
+                * Redistributes those points so P/E, P/S, ROE, and Debt are worth **25 points** each.
+                * **Best for:** Software, Semiconductors (like TSM), and AI companies.
+                """)
+    except Exception as e:
+        st.error(f"Error: {e}")
