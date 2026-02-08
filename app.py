@@ -1,3 +1,12 @@
+import streamlit as st
+import yfinance as yf
+import pandas as pd
+import plotly.graph_objects as go
+
+# --- 1. PAGE CONFIGURATION ---
+st.set_page_config(layout="wide", page_title="Cicim Bot Pro")
+st.title("🤖 Cicim Bot: Professional Stock Analysis")
+
 # --- 2. IMPROVED RATING LOGIC ---
 def get_rating(val, metric_type, sector="Other"):
     """Calculates status and points with Sector-Awareness"""
@@ -86,37 +95,14 @@ if run_btn:
             }
             st.table(pd.DataFrame(full_data))
 
-# --- 7. DETAILED METHODOLOGY EXPANDER ---
-            st.divider()
-            with st.expander("🚦 Deep Dive: Scoring Methodology & Indicators"):
+            # --- 7. METHODOLOGY ---
+            with st.expander("🚦 Deep Dive: Scoring Methodology"):
                 st.markdown(f"""
-                ### 🏆 How the {total_score}/100 Score is Calculated
-                The bot uses a **Weighted Simple Additive Scoring** method. Each of the 5 indicators is a "health check" worth exactly **20 points**.
-                
-                **Calculation Formula:**
-                $Total Score = S_{{PE}} + S_{{PS}} + S_{{PB}} + S_{{ROE}} + S_{{DEBT}}$
-                
-                | Indicator | ✅ 20 Points (Best) | ⚖️ 10 Points (Fair) | ⚠️ 0 Points (Poor) |
-                | :--- | :--- | :--- | :--- |
-                | **P/E Ratio** | < 20 | 20 - 40 | > 40 |
-                | **P/S Ratio** | < 2.0 | 2.0 - 5.0 | > 5.0 |
-                | **P/B Ratio** | < 1.5 | 1.5 - 4.0 | > 4.0 |
-                | **ROE %** | > 18% | 8% - 18% | < 8% |
-                | **Debt/Equity**| < 0.8 | 0.8 - 1.6 | > 1.6 |
-
-                ---
-
-                ### 🔍 Indicator Logic in the Code
-                1. **P/E (Price-to-Earnings):** We use **TTM (Trailing Twelve Months)** as the primary scoring metric because it is based on audited past performance. **Forward P/E** is shown for context on analyst expectations.
-                2. **P/S (Price-to-Sales):** This measures how much you pay for every $1 of sales. It is crucial for high-growth tech companies that might not have high profits yet.
-                3. **P/B (Price-to-Book):** This tells you the "floor" value of the stock based on the company's balance sheet.
-                4. **ROE (Return on Equity):** This is calculated as: $\\text{{ROE}} = \\frac{{\\text{{Net Income}}}}{{\\text{{Shareholder Equity}}}}$. It shows how efficiently management uses your money.
-                5. **Debt-to-Equity:** This measures the company's leverage. A score of 0.5 means for every $1 of equity, the company has $0.50 in debt.
-
-                **Rating Tiers:**
-                * **80-100:** 💎 **Strong Buy Candidate** - Excellent value and safety.
-                * **50-70:** ⚖️ **Hold / Average** - Good, but potentially overvalued or high debt.
-                * **Below 50:** 🚩 **High Risk** - Poor fundamentals or extreme "hype" pricing.
+                ### Sector-Aware Scoring: {stock_sector}
+                Our bot recognizes that **{stock_sector}** companies have different norms.
+                * **For Tech:** P/B limits are higher (up to 8.0 for 20 points) because value is in software/patents.
+                * **For Others:** Traditional limits apply (P/B < 1.5 for 20 points).
                 """)
+
     except Exception as e:
-        st.error(f"Error processing {ticker_input}: {e}")
+        st.error(f"Error: {e}")
