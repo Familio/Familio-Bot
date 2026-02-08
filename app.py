@@ -35,9 +35,35 @@ def get_rating(val, metric_type):
 
 # --- 3. SIDEBAR ---
 with st.sidebar:
-    st.header("Search")
+    st.header("Search & Watchlist")
+    
+    # Text input for manual search
     ticker_input = st.text_input("Enter Ticker Symbol", "TSM").upper()
-    run_btn = st.button("🚀 Analyze Stock")
+    
+    st.write("---")
+    st.subheader("Quick Select")
+    
+    # 🌟 NEW: Predefined list of popular stocks
+    watchlist = {
+        "TSM": "Taiwan Semi",
+        "NVDA": "NVIDIA",
+        "AAPL": "Apple",
+        "MSFT": "Microsoft",
+        "GOOGL": "Alphabet",
+        "AMZN": "Amazon",
+        "META": "Meta"
+    }
+    
+    # Create buttons for each stock in the watchlist
+    for symbol, name in watchlist.items():
+        if st.button(f"{symbol} ({name})", use_container_width=True):
+            ticker_input = symbol # Updates the input variable
+            # We don't need a separate button click here; 
+            # the app will rerun with the new ticker_input
+            
+    st.write("---")
+    run_btn = st.button("🚀 Analyze Stock", type="primary", use_container_width=True)
+    st.info("The Modern Score is recommended for Tech and SaaS sectors.")
 
 # --- 4. MAIN APP LOGIC ---
 if run_btn:
