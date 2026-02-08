@@ -116,38 +116,31 @@ if run_btn:
                 df_display = pd.DataFrame(full_data).astype(str)
                 st.table(df_display)
 
-                # --- 8. METHODOLOGY ---
-                with st.expander("🚦 Methodology Breakdown"):
-                    st.markdown("""
-                    Each metric contributes up to **20 points**:
-                    * **P/E < 20:** Good value.
-                    * **P/S < 2:** Healthy revenue multiple.
-                    * **P/B < 1.5:** Trading close to asset value.
-                    * **ROE > 18%:** Highly efficient management.
-                    * **Debt/Equity < 0.8:** Low financial risk.
-                    """)
+               # --- 8. METHODOLOGY ---
+with st.expander("🚦 How to Read the Ratings & Methodology"):
+    st.markdown("""
+    ### 📊 Understanding the Metrics
 
-                 ### 📊 Understanding the Metrics
+    * **Valuation (P/E):** Compares share price to earnings. 
+        * :white_check_mark: *Good Value (<20):* The stock is "on sale" compared to its profits.
+        * :warning: *Pricey (>35):* You are paying a high premium for every $1 of profit.
 
-* **Valuation (P/E):** Compares share price to earnings. 
-    * ✅ *Good Value (<20):* The stock is "on sale" compared to its profits.
-    * ⚠️ *Pricey (>35):* You are paying a high premium for every $1 of profit.
+    * **Revenue Multiple (P/S):** Measures price against total sales. 
+        * :white_check_mark: *Fair Sales (<2.0):* You are paying a low multiple for the company's revenue.
+        * :warning: *High Premium (>5.0):* High growth expectations (common in tech).
 
-* **Revenue Multiple (P/S):** Measures price against total sales. 
-    * ✅ *Fair Sales (<2.0):* You are paying a low multiple for the company's revenue generation.
-    * ⚠️ *High Premium (>5.0):* Common in "hype" stocks; expectations for future growth are extremely high.
+    * **Asset Value (P/B):** Compares market price to "book value" (net assets).
+        * :gem: *Undervalued (<1.5):* Trading close to physical asset value.
+        * :warning: *Asset Heavy (>4.0):* Value is tied more to brand/IP than physical assets.
 
-* **Asset Value (P/B):** Compares market price to the company's "book value" (net assets).
-    * ✅ *Undervalued (<1.5):* The stock is trading close to the value of its physical assets.
-    * ⚠️ *Asset Heavy (>4.0):* The market is valuing the "brand" or "intellectual property" much higher than physical assets.
+    * **Efficiency (ROE):** Shows how well management uses equity to make profit.
+        * :fire: *High Power (>20%):* Exceptional management and profitability.
+        * :snail: *Slow (<10%):* Struggling to generate returns on capital.
 
-* **Efficiency (ROE):** Shows how well the company uses your money to make profit.
-    * 🔥 *High Power (>20%):* Exceptional management and high profitability.
-    * 🐌 *Slow (<10%):* The company is struggling to generate returns on shareholder capital.
-
-* **Safety (Debt/Equity):** Measures financial risk.
-    * 🛡️ *Very Safe (<0.5):* The company has very little debt compared to its assets.
-    * 🚩 *Risky Debt (>1.5):* The company is heavily leveraged; risky if interest rates rise.
+    * **Safety (Debt/Equity):** Measures financial risk.
+        * :shield: *Very Safe (<0.5):* Very little debt compared to assets.
+        * :triangular_flag_on_post: *Risky Debt (>1.5):* Heavily leveraged; sensitive to interest rates.
+    """)
 
 **Overall Verdict:** {total_status} ({total_score}/100)
         except Exception as e:
