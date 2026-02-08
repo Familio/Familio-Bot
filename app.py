@@ -91,13 +91,6 @@ if run_btn:
             }
             st.table(pd.DataFrame(full_data))
 
-            # --- 7. AI VERDICT ---
-            client = genai.Client(api_key=api_key)
-            prompt = f"Analyze {ticker_input}. PE: {f_pe}, ROE: {roe}%, Debt: {debt}. Score: {total_score}/100."
-            response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
-            st.info("🤖 AI Final Recommendation:")
-            st.write(response.text)
-
  # --- EDUCATIONAL FOOTER ---
             st.divider()
             with st.expander("🚦 Methodology & Evaluation Breakdown"):
