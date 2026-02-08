@@ -1,16 +1,15 @@
-import requests_cache
-from requests import Session
-from requests_ratelimiter import LimiterSession
-
-# This tells the app to remember data for 10 minutes 
-# and stay under the rate limit automatically
-session = LimiterSession(per_second=2) 
-# You can then pass this session to yf.Ticker(ticker, session=session)
-
 import streamlit as st
 import yfinance as yf
 import pandas as pd
 import streamlit.components.v1 as components
+
+# --- NEW: CACHED DATA FETCHING ---
+@st.cache_data(ttl=3600)  # Saves data for 1 hour (3600 seconds)
+def fetch_stock_data(ticker):
+    """Downloads all necessary data once and stores it in cache."""
+    stock = yf.Ticker(ticker)
+    # We return the .info dictionary directly
+    return stock.info
 
 # --- 1. PAGE CONFIGURATION ---
 st.set_page_config(layout="wide", page_title="Cicim Bot Pro", page_icon="📈")
@@ -82,9 +81,15 @@ with st.sidebar:
 # --- 4. MAIN APP LOGIC ---
 if run_btn or ticker_input:
     try:
-        stock = yf.Ticker(ticker_input)
-        info = stock.info
+        # Use the cached function instead of calling yf.Ticker every time
+        info = fetch_stock_data(ticker_input)
 
+        if not info or 'regularMarketPrice' not in info and 'currentPrice' not in info:
+            st.error("No data found. Check the ticker symbol or wait for rate limit reset.")
+            st.stop()
+            
+        # ... rest of your logic (pe = info.get('trailingPE'), etc.)
+        
         # 4a. Basic Metrics
         pe = info.get('trailingPE')
         f_pe = info.get('forwardPE') 
