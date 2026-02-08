@@ -141,7 +141,5 @@ with st.expander("🚦 How to Read the Ratings & Methodology"):
         * :shield: *Very Safe (<0.5):* Very little debt compared to assets.
         * :triangular_flag_on_post: *Risky Debt (>1.5):* Heavily leveraged; sensitive to interest rates.
     """)
-
-**Overall Verdict:** {total_status} ({total_score}/100)
         except Exception as e:
             st.error(f"Error processing {ticker_input}: {e}")
