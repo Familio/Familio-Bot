@@ -46,11 +46,11 @@ with st.sidebar:
     
     watchlist = {
         "TSM": "Taiwan Semi",
-        "NVDA": "NVIDIA",
-        "AAPL": "Apple",
-        "MSFT": "Microsoft",
+        "PG": "Procter and Gamble",
+        "Bayer": "Bayer",
+        "BMW": "BMW",
         "GOOGL": "Alphabet",
-        "META": "Meta"
+        "NIO": "NIO"
     }
     
     # If a button is clicked, we update the search box indirectly
