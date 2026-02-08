@@ -1,11 +1,12 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
+import plotly.graph_objects as go  # Added for Candle Chart
 from google import genai
 
 # --- 1. PAGE CONFIGURATION ---
 st.set_page_config(layout="wide", page_title="Cicim Bot Pro")
-st.title("🤖 Cicim Bot: Fundamental Analysis")
+st.title("🤖 Cicim Bot: Candle Analysis")
 
 # --- 2. RATING LOGIC ---
 def get_rating(val, metric_type):
@@ -40,9 +41,8 @@ if run_btn:
             stock = yf.Ticker(ticker_input)
             info = stock.info
             
-            # --- GET CHART DATA FROM YAHOO FINANCE ---
-            # Fetching 1 year of daily closing prices
-            hist = stock.history(period="1y")
+            # --- GET CANDLE DATA ---
+            hist = stock.history(period="6mo") # 6 months is best for candle visibility
             
             # Data Extraction
             mkt_cap = info.get('marketCap', 0)
@@ -56,57 +56,49 @@ if run_btn:
             pe_label, pe_score = get_rating(f_pe if f_pe else trailing_pe, "PE")
             roe_label, roe_score = get_rating(roe, "ROE")
             debt_label, debt_score = get_rating(debt, "DEBT")
-            
             total_score = pe_score + roe_score + debt_score
             
-            if total_score >= 80:
-                total_status = "💎 Strong Buy Candidate"
-            elif total_score >= 40:
-                total_status = "⚖️ Average / Hold"
-            else:
-                total_status = "🚩 High Risk / Avoid"
+            total_status = "💎 Strong Buy" if total_score >= 80 else "⚖️ Average" if total_score >= 40 else "🚩 Risky"
 
-            st.subheader(f"Data Summary for {ticker_input} ({info.get('longName', '')})")
+            st.subheader(f"Technical & Fundamental Summary: {ticker_input}")
 
-            # --- 5. DISPLAY THE YAHOO FINANCE CHART ---
-            # We use Streamlit's area_chart for a clean, modern look
-            st.write("### 📈 1-Year Price History (via Yahoo Finance)")
-            st.area_chart(hist['Close'])
+            # --- 5. CREATE PLOTLY CANDLE CHART ---
+            fig = go.Figure(data=[go.Candlestick(
+                x=hist.index,
+                open=hist['Open'],
+                high=hist['High'],
+                low=hist['Low'],
+                close=hist['Close'],
+                increasing_line_color= 'green', decreasing_line_color= 'red'
+            )])
+            
+            fig.update_layout(
+                title=f"{ticker_input} Price Action (6 Months)",
+                yaxis_title="Price (USD)",
+                xaxis_rangeslider_visible=False, # Keeps it clean
+                height=500,
+                template="plotly_white"
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
 
             # --- 6. THE TABLE ---
             st.divider()
             full_data = {
-                "Metric": [
-                    "Current Price", 
-                    "Market Cap",
-                    "Price/Earning (TTM)",
-                    "Forward P/E", 
-                    "Return on Equity (ROE)", 
-                    "Debt/Equity", 
-                    "OVERALL SCORE"
-                ],
-                "Value": [
-                    f"${info.get('currentPrice', 'N/A')}", 
-                    cap_str,
-                    f"{trailing_pe:.2f}" if trailing_pe else "N/A",
-                    f"{f_pe:.2f}" if f_pe else "N/A", 
-                    f"{roe:.2f}%", 
-                    f"{debt:.2f}", 
-                    f"{total_score}/100"
-                ],
-                "Status": [
-                    "Current", 
-                    "Size", 
-                    "Historical",
-                    pe_label, 
-                    roe_label, 
-                    debt_label, 
-                    total_status
-                ]
+                "Metric": ["Price", "Market Cap", "P/E (TTM)", "Forward P/E", "ROE", "Debt/Equity", "OVERALL SCORE"],
+                "Value": [f"${info.get('currentPrice', 'N/A')}", cap_str, f"{trailing_pe:.2f}" if trailing_pe else "N/A", f"{f_pe:.2f}" if f_pe else "N/A", f"{roe:.2f}%", f"{debt:.2f}", f"{total_score}/100"],
+                "Status": ["Current", "Size", "Historical", pe_label, roe_label, debt_label, total_status]
             }
             st.table(pd.DataFrame(full_data))
 
-               # --- EDUCATIONAL FOOTER ---
+            # --- 7. AI VERDICT ---
+            client = genai.Client(api_key=api_key)
+            prompt = f"Analyze {ticker_input}. PE: {f_pe}, ROE: {roe}%, Debt: {debt}. Score: {total_score}/100."
+            response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+            st.info("🤖 AI Final Recommendation:")
+            st.write(response.text)
+
+ # --- EDUCATIONAL FOOTER ---
             st.divider()
             with st.expander("🚦 Methodology & Evaluation Breakdown"):
                 st.markdown(f"""
