@@ -110,36 +110,37 @@ if run_btn:
             df_display = pd.DataFrame(full_data).astype(str)
             st.table(df_display)
 
-         # --- 7. DETAILED METHODOLOGY EXPANDER ---
+# --- 7. DETAILED METHODOLOGY EXPANDER ---
             st.divider()
             with st.expander("🚦 Deep Dive: Scoring Methodology & Indicators"):
                 st.markdown(f"""
-                ### How the {total_score}/100 Score is Calculated
-                Each of the 5 key metrics below contributes up to **20 points**.
+                ### 🏆 How the {total_score}/100 Score is Calculated
+                The bot uses a **Weighted Simple Additive Scoring** method. Each of the 5 indicators is a "health check" worth exactly **20 points**.
                 
-                | Indicator | ✅ 20 Points | ⚖️ 10 Points | ⚠️ 0 Points |
+                **Calculation Formula:**
+                $Total Score = S_{{PE}} + S_{{PS}} + S_{{PB}} + S_{{ROE}} + S_{{DEBT}}$
+                
+                | Indicator | ✅ 20 Points (Best) | ⚖️ 10 Points (Fair) | ⚠️ 0 Points (Poor) |
                 | :--- | :--- | :--- | :--- |
-                | **P/E Ratio** | < 20 (Value) | 20 - 40 (Fair) | > 40 (Pricey) |
-                | **P/S Ratio** | < 2.0 (Healthy) | 2.0 - 5.0 (Moderate) | > 5.0 (Hype) |
-                | **P/B Ratio** | < 1.5 (Asset Safe) | 1.5 - 4.0 (Fair) | > 4.0 (Premium) |
-                | **ROE %** | > 18% (Efficient) | 8% - 18% (Average) | < 8% (Slow) |
-                | **Debt/Equity**| < 0.8 (Low Risk) | 0.8 - 1.6 (Average) | > 1.6 (Risky) |
+                | **P/E Ratio** | < 20 | 20 - 40 | > 40 |
+                | **P/S Ratio** | < 2.0 | 2.0 - 5.0 | > 5.0 |
+                | **P/B Ratio** | < 1.5 | 1.5 - 4.0 | > 4.0 |
+                | **ROE %** | > 18% | 8% - 18% | < 8% |
+                | **Debt/Equity**| < 0.8 | 0.8 - 1.6 | > 1.6 |
 
                 ---
 
-                ### 🔍 Indicator Explanations
-                
-                * **P/E (Price-to-Earnings):** Measures cost per $1 of profit. **TTM** (Trailing Twelve Months) uses real past data, while **Forward** uses analyst estimates.
-                * **P/S (Price-to-Sales):** Compares stock price to total revenue. Revenue is harder to "fake" than profit, making this a very strong growth indicator.
-                * **P/B (Price-to-Book):** Compares market value to the company's net assets. A low P/B suggests you are buying the physical business at a bargain.
-                * **ROE (Return on Equity):** The "Management Quality" metric. It shows how much profit the company makes with shareholder money.
-                * **Debt-to-Equity:** Measures financial leverage. High debt can be dangerous if interest rates rise or sales slow down.
+                ### 🔍 Indicator Logic in the Code
+                1. **P/E (Price-to-Earnings):** We use **TTM (Trailing Twelve Months)** as the primary scoring metric because it is based on audited past performance. **Forward P/E** is shown for context on analyst expectations.
+                2. **P/S (Price-to-Sales):** This measures how much you pay for every $1 of sales. It is crucial for high-growth tech companies that might not have high profits yet.
+                3. **P/B (Price-to-Book):** This tells you the "floor" value of the stock based on the company's balance sheet.
+                4. **ROE (Return on Equity):** This is calculated as: $\\text{{ROE}} = \\frac{{\\text{{Net Income}}}}{{\\text{{Shareholder Equity}}}}$. It shows how efficiently management uses your money.
+                5. **Debt-to-Equity:** This measures the company's leverage. A score of 0.5 means for every $1 of equity, the company has $0.50 in debt.
 
-                **Final Verdict Logic:**
-                * **80+ points:** 💎 High stability and valuation.
-                * **50-70 points:** ⚖️ Solid but has one or two weak spots.
-                * **Below 50:** 🚩 Significant valuation or debt concerns.
+                **Rating Tiers:**
+                * **80-100:** 💎 **Strong Buy Candidate** - Excellent value and safety.
+                * **50-70:** ⚖️ **Hold / Average** - Good, but potentially overvalued or high debt.
+                * **Below 50:** 🚩 **High Risk** - Poor fundamentals or extreme "hype" pricing.
                 """)
-
     except Exception as e:
         st.error(f"Error processing {ticker_input}: {e}")
