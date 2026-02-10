@@ -3,115 +3,215 @@ import yfinance as yf
 import pandas as pd
 import streamlit.components.v1 as components
 
-# --- 1. PAGE CONFIG & CACHING ---
-st.set_page_config(layout="wide", page_title="Cicim Unified Bot", page_icon="🏦")
-
+# --- 1. CACHED DATA FETCHING ---
 @st.cache_data(ttl=3600)
-def fetch_finance_data(ticker):
-    """Universal fetcher for both Stocks and ETFs."""
+def fetch_stock_data(ticker):
     stock = yf.Ticker(ticker)
     return stock.info
 
-# --- 2. HELPER FUNCTIONS ---
-def get_stock_rating(val, metric_type):
-    if val in [None, 0, "N/A"]: return "⚪ Neutral", 0
+# --- 2. PAGE CONFIGURATION ---
+st.set_page_config(layout="wide", page_title="Familio AI", page_icon="📈")
+st.title("📈 Familio AI Bot: Advanced Stock Analysis")
+
+def get_rating(val, metric_type):
+    """Calculates scores based on standard financial benchmarks."""
+    if val in ["N/A", None, 0]:
+        return "⚪ Neutral", 0
+    
+    # Valuation Ratings
     if metric_type in ["PE", "FPE"]:
         if val < 20: return "✅ Good Value", 20
         if val < 40: return "⚖️ Average", 10
+        return "⚠️ Pricey", 0
+    if metric_type == "PS":
+        if val < 2.0: return "✅ Fair Sales", 20
+        if val < 5.0: return "⚖️ Moderate", 10
+        return "⚠️ High Premium", 0
+    if metric_type == "PB":
+        if val < 1.5: return "💎 Undervalued", 20
+        if val < 4.0: return "⚖️ Fair Assets", 10
+        return "⚠️ Asset Heavy", 0
+        
+    # Profitability/Efficiency Ratings
     if metric_type == "ROE":
         if val > 18: return "🔥 High Power", 20
         if val > 8: return "⚖️ Average", 10
+        return "🐌 Slow", 0
+    if metric_type == "Margin":
+        if val > 20: return "💰 High Profit", 20
+        if val > 10: return "⚖️ Healthy", 10
+        return "Thin", 0
+        
+    # Health/Debt Ratings
     if metric_type == "DEBT":
         if val < 0.8: return "🛡️ Very Safe", 20
         if val < 1.6: return "⚖️ Average", 10
+        return "🚩 Risky Debt", 0
+    if metric_type == "CurrentRatio":
+        if val > 1.5: return "💧 Liquid", 20
+        if val > 1.0: return "⚖️ Stable", 10
+        return "⚠️ Cash Tight", 0
+
     return "⚪ Neutral", 0
 
-# --- 3. SIDEBAR NAVIGATION ---
+# --- 3. SIDEBAR (WATCHLIST & SEARCH) ---
 with st.sidebar:
-    st.title("🏦 Cicim Unified")
-    mode = st.radio("Select Analysis Mode", ["📈 Stocks", "🧺 ETFs"], help="Switch between Individual Companies and Funds.")
-    st.divider()
+    st.header("Search & Watchlist")
+    ticker_input = st.text_input("Enter Ticker Symbol", "TSM").upper()
     
-    ticker_input = st.text_input(f"Enter {mode[:-1]} Symbol", "TSM" if "Stocks" in mode else "VOO").upper()
-    run_btn = st.button(f"Analyze {mode[:-1]}", type="primary", use_container_width=True)
+    st.write("---")
+    st.subheader("Quick Select Watchlist")
     
-    if "Stocks" in mode:
-        st.write("### Quick Watchlist")
-        for sym in ["NVDA", "AAPL", "MSFT", "GOOGL"]:
-            if st.button(sym, use_container_width=True): ticker_input = sym
+    # Top 10 Stocks Watchlist
+    watchlist = {
+        "NVDA": "NVIDIA", "AAPL": "Apple", "MSFT": "Microsoft", 
+        "AMZN": "Amazon", "GOOGL": "Alphabet", "TSLA": "Tesla", 
+        "AVGO": "Broadcom", "LLY": "Eli Lilly", "JPM": "JPMorgan", 
+        "TSM": "Taiwan Semi"
+    }
+    
+    for symbol, name in watchlist.items():
+        if st.button(f"{symbol} - {name}", key=f"btn_{symbol}", use_container_width=True):
+            ticker_input = symbol 
+            
+    st.write("---")
+    run_btn = st.button("🚀 Run Deep Analysis", type="primary", use_container_width=True)
 
 # --- 4. MAIN APP LOGIC ---
-if ticker_input:
+if run_btn or ticker_input:
     try:
-        info = fetch_finance_data(ticker_input)
+        info = fetch_stock_data(ticker_input)
+
+        if not info or ('regularMarketPrice' not in info and 'currentPrice' not in info):
+            st.error("No data found or rate limit hit. Try again in 5 minutes.")
+            st.stop()
+            
+        # 4a. Metric Extraction
+        curr_price = info.get('currentPrice', 1)
+        # Valuation
+        pe = info.get('trailingPE')
+        f_pe = info.get('forwardPE') 
+        ps = info.get('priceToSalesTrailing12Months')
+        pb = info.get('priceToBook')
+        # Profitability
+        roe = (info.get('returnOnEquity', 0) or 0) * 100
+        profit_margin = (info.get('profitMargins', 0) or 0) * 100
+        # Health
+        debt = (info.get('debtToEquity', 0) or 0) / 100
+        current_ratio = info.get('currentRatio')
+        # Sentiment
+        target = info.get('targetMeanPrice')
+        upside = ((target / curr_price) - 1) * 100 if target else 0
+
+        # 4b. Scoring Logic
+        l_pe, s_pe = get_rating(pe, "PE")
+        l_fpe, s_fpe = get_rating(f_pe, "FPE") 
+        l_ps, s_ps = get_rating(ps, "PS")
+        l_pb, s_pb = get_rating(pb, "PB")
+        l_roe, s_roe = get_rating(roe, "ROE")
+        l_margin, s_margin = get_rating(profit_margin, "Margin")
+        l_debt, s_debt = get_rating(debt, "DEBT")
+        l_cr, s_cr = get_rating(current_ratio, "CurrentRatio")
+
+        # Total Calculation (Weighted)
+        fundamental_total = (s_pe + s_ps + s_pb + s_roe + s_debt + s_margin + s_cr) / 1.4
         
-        # --- A. STOCK ANALYSIS VIEW ---
-        if "Stocks" in mode:
-            st.title(f"Analysis: {info.get('longName', ticker_input)}")
+        tech_score = 0
+        if upside > 15: tech_score = 30
+        elif upside > 0: tech_score = 15
+
+        total_score = (fundamental_total * 0.7) + tech_score
+        
+        # Verdict Mapping
+        if total_score >= 80: verdict, color = "🚀 STRONG BUY", "green"
+        elif total_score >= 60: verdict, color = "📈 BUY", "#90EE90"
+        elif total_score >= 40: verdict, color = "⚖️ HOLD", "gray"
+        else: verdict, color = "🚩 SELL", "red"
             
-            # Data Extraction
-            pe = info.get('trailingPE')
-            roe = (info.get('returnOnEquity', 0) or 0) * 100
-            debt = (info.get('debtToEquity', 0) or 0) / 100
-            target = info.get('targetMeanPrice')
-            curr_price = info.get('currentPrice', 1)
-            upside = ((target / curr_price) - 1) * 100 if target else 0
+        # --- 5. VISUALS ---
+        st.markdown(f"""
+            <div style="background-color:{color}; padding:25px; border-radius:15px; text-align:center; border: 2px solid white;">
+                <h1 style="color:white; margin:0;">Verdict: {verdict}</h1>
+                <h2 style="color:white; margin:0;">AI Score: {int(total_score)}/100</h2>
+            </div>
+        """, unsafe_allow_html=True)
 
-            # Scoring
-            _, s_pe = get_stock_rating(pe, "PE")
-            _, s_roe = get_stock_rating(roe, "ROE")
-            _, s_debt = get_stock_rating(debt, "DEBT")
-            
-            fundamental_score = (s_pe + s_roe + s_debt) * 1.66 # Scale to ~100
-            tech_score = 30 if upside > 15 else (15 if upside > 0 else 0)
-            total_score = (fundamental_score * 0.7) + tech_score
+        st.subheader(f"Live Analysis: {info.get('longName', ticker_input)}")
+        
+        # Metric Row 1
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Current Price", f"${curr_price}")
+        m2.metric("Analyst Target", f"${target}" if target else "N/A")
+        m3.metric("Dividend Yield", f"{(info.get('dividendYield',0)*100):.2f}%")
+        m4.metric("Market Cap", f"${(info.get('marketCap',0)/1e9):.1f}B")
 
-            # UI Display
-            st.metric("Total Stock Score", f"{int(total_score)} / 100")
-            col1, col2, col3 = st.columns(3)
-            col1.metric("P/E Ratio", f"{pe:.2f}" if pe else "N/A")
-            col2.metric("ROE", f"{roe:.1f}%")
-            col3.metric("Upside", f"{upside:.1f}%")
-
-        # --- B. ETF ANALYSIS VIEW ---
-        else:
-            st.title(f"Fund Analysis: {info.get('longName', ticker_input)}")
-            
-            # Data Extraction
-            exp_ratio = info.get('annualReportExpenseRatio', 0.001) or 0
-            yield_pct = (info.get('trailingAnnualDividendYield', 0) or 0) * 100
-            aum = info.get('totalAssets', 0) or 0
-            
-            # Scoring
-            etf_score = 0
-            if exp_ratio <= 0.10: etf_score += 50
-            elif exp_ratio <= 0.30: etf_score += 30
-            if aum > 1_000_000_000: etf_score += 30
-            if yield_pct > 2: etf_score += 20
-
-            # UI Display
-            st.metric("Efficiency Score", f"{etf_score} / 100")
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Expense Ratio", f"{exp_ratio:.2%}", delta="Cheap" if exp_ratio < 0.1 else "Pricey", delta_color="inverse")
-            col2.metric("Div. Yield", f"{yield_pct:.2f}%")
-            col3.metric("AUM", f"${aum/1e9:.1f}B")
-
-        # --- C. SHARED INTERACTIVE CHART ---
-        st.divider()
-        st.subheader("Interactive Market Chart")
+        # TradingView Chart
         tradingview_widget = f"""
-        <div class="tradingview-widget-container"><div id="tv_chart"></div>
-        <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-        <script type="text/javascript">new TradingView.widget({{"width": "100%", "height": 450, "symbol": "{ticker_input}", "interval": "D", "theme": "light"}});</script></div>
+        <div class="tradingview-widget-container">
+          <div id="tv_chart"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+          <script type="text/javascript">
+          new TradingView.widget({{
+            "width": "100%", "height": 450, "symbol": "{ticker_input}",
+            "interval": "D", "theme": "light", "style": "1", "locale": "en",
+            "studies": ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"]
+          }});
+          </script>
+        </div>
         """
         components.html(tradingview_widget, height=470)
 
-    except Exception as e:
-        st.error(f"Could not analyze {ticker_input}. Error: {e}")
+        # --- 6. DATA TABLES ---
+        st.write("### 📊 Deep Fundamental Audit")
+        col_left, col_right = st.columns(2)
 
-# --- 5. UNIFIED EXPLANATION ---
-with st.expander("📖 How the Scores Work"):
-    st.markdown("""
-    * **Stocks:** Uses the '5 Pillars' (PE, ROE, Debt, etc.) to judge if the business is healthy.
-    * **ETFs:** Uses 'Efficiency Metrics' (Fees, Assets, Yield) to judge if the fund is a good bucket for your money.
-    """)
+        with col_left:
+            st.markdown("#### Valuation & Growth")
+            df_val = pd.DataFrame({
+                "Metric": ["Trailing P/E", "Forward P/E", "Price to Sales", "Price to Book", "Upside potential"],
+                "Value": [f"{pe:.2f}" if pe else "N/A", f"{f_pe:.2f}" if f_pe else "N/A", f"{ps:.2f}" if ps else "N/A", f"{pb:.2f}" if pb else "N/A", f"{upside:.1f}%"],
+                "Rating": [l_pe, l_fpe, l_ps, l_pb, "Sentiment"]
+            })
+            st.table(df_val)
+
+        with col_right:
+            st.markdown("#### Efficiency & Solvency")
+            df_health = pd.DataFrame({
+                "Metric": ["Return on Equity (ROE)", "Profit Margin", "Debt to Equity", "Current Ratio", "Payout Ratio"],
+                "Value": [f"{roe:.2f}%", f"{profit_margin:.2f}%", f"{debt:.2f}", f"{current_ratio:.2f}", f"{(info.get('payoutRatio',0)*100):.1f}%"],
+                "Rating": [l_roe, l_margin, l_debt, l_cr, "Cash Flow"]
+            })
+            st.table(df_health)
+
+        # --- 7. EXPLANATION SECTION ---
+        st.divider()
+        st.header("📖 Methodology & Indicator Guide")
+        t1, t2, t3 = st.tabs(["💵 Valuation", "🏆 Performance", "🛡️ Safety"])
+
+        with t1:
+            st.markdown("""
+            **P/E (Price to Earnings):** The gold standard for valuation. A P/E under 20 is often considered 'value' territory, while over 40 suggests high growth expectations or a bubble.
+            
+            **P/S (Price to Sales):** Critical for Tech/SaaS. Shows how much you pay for every $1 of revenue.
+            
+            **P/B (Price to Book):** Measures the market price against the company's net asset value.
+            """)
+
+        with t2:
+            st.markdown("""
+            **ROE (Return on Equity):** Tells you how much profit the company generates with the money shareholders have invested. Over 18% is elite.
+            
+            **Profit Margin:** Percentage of revenue left after all expenses. High margins indicate a strong "moat" or brand power.
+            """)
+
+        with t3:
+            st.markdown("""
+            **Debt/Equity:** A ratio of 1.0 means debt equals equity. We prefer < 0.8 for safety.
+            
+            **Current Ratio:** Measures if the company can pay its short-term bills. A ratio > 1.5 is healthy.
+            
+            **Upside:** The gap between current price and professional analyst targets.
+            """)
+
+    except Exception as e:
+        st.error(f"Analysis failed: {e}")
