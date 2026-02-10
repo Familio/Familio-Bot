@@ -62,7 +62,6 @@ with st.sidebar:
     st.write("---")
     st.subheader("Quick Select Watchlist")
     
-    # Top 10 Stocks Watchlist
     watchlist = {
         "NVDA": "NVIDIA", "AAPL": "Apple", "MSFT": "Microsoft", 
         "AMZN": "Amazon", "GOOGL": "Alphabet", "TSLA": "Tesla", 
@@ -86,24 +85,20 @@ if run_btn or ticker_input:
             st.error("No data found or rate limit hit. Try again in 5 minutes.")
             st.stop()
             
-        # 4a. Metric Extraction
+        # Metric Extraction
         curr_price = info.get('currentPrice', 1)
-        # Valuation
         pe = info.get('trailingPE')
         f_pe = info.get('forwardPE') 
         ps = info.get('priceToSalesTrailing12Months')
         pb = info.get('priceToBook')
-        # Profitability
         roe = (info.get('returnOnEquity', 0) or 0) * 100
         profit_margin = (info.get('profitMargins', 0) or 0) * 100
-        # Health
         debt = (info.get('debtToEquity', 0) or 0) / 100
         current_ratio = info.get('currentRatio')
-        # Sentiment
         target = info.get('targetMeanPrice')
         upside = ((target / curr_price) - 1) * 100 if target else 0
 
-        # 4b. Scoring Logic
+        # Scoring
         l_pe, s_pe = get_rating(pe, "PE")
         l_fpe, s_fpe = get_rating(f_pe, "FPE") 
         l_ps, s_ps = get_rating(ps, "PS")
@@ -113,16 +108,10 @@ if run_btn or ticker_input:
         l_debt, s_debt = get_rating(debt, "DEBT")
         l_cr, s_cr = get_rating(current_ratio, "CurrentRatio")
 
-        # Total Calculation (Weighted)
         fundamental_total = (s_pe + s_ps + s_pb + s_roe + s_debt + s_margin + s_cr) / 1.4
-        
-        tech_score = 0
-        if upside > 15: tech_score = 30
-        elif upside > 0: tech_score = 15
-
+        tech_score = 30 if upside > 15 else (15 if upside > 0 else 0)
         total_score = (fundamental_total * 0.7) + tech_score
         
-        # Verdict Mapping
         if total_score >= 80: verdict, color = "🚀 STRONG BUY", "green"
         elif total_score >= 60: verdict, color = "📈 BUY", "#90EE90"
         elif total_score >= 40: verdict, color = "⚖️ HOLD", "gray"
@@ -138,7 +127,6 @@ if run_btn or ticker_input:
 
         st.subheader(f"Live Analysis: {info.get('longName', ticker_input)}")
         
-        # Metric Row 1
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Current Price", f"${curr_price}")
         m2.metric("Analyst Target", f"${target}" if target else "N/A")
@@ -161,7 +149,25 @@ if run_btn or ticker_input:
         """
         components.html(tradingview_widget, height=470)
 
+        # --- NEW SECTION: CHART ANALYSIS DESCRIPTION ---
+        st.markdown("### 📈 How to Read This Chart")
+        c_col1, c_col2 = st.columns(2)
+        with c_col1:
+            st.info("""
+            **Relative Strength Index (RSI):**
+            * **Over 70:** The stock is 'Overbought'. It might be due for a price drop or 'cool down.'
+            * **Under 30:** The stock is 'Oversold'. This often indicates a potential buying opportunity or 'bounce.'
+            """)
+        with c_col2:
+            st.info("""
+            **Moving Averages (MA):**
+            * **Price Above MA:** Indicates a strong bullish trend (positive momentum).
+            * **Price Below MA:** Indicates a bearish trend (negative momentum). 
+            * Look for 'Crossovers' where a short-term line crosses a long-term line for trend shifts.
+            """)
+
         # --- 6. DATA TABLES ---
+        st.write("---")
         st.write("### 📊 Deep Fundamental Audit")
         col_left, col_right = st.columns(2)
 
@@ -190,27 +196,19 @@ if run_btn or ticker_input:
 
         with t1:
             st.markdown("""
-            **P/E (Price to Earnings):** The gold standard for valuation. A P/E under 20 is often considered 'value' territory, while over 40 suggests high growth expectations or a bubble.
-            
-            **P/S (Price to Sales):** Critical for Tech/SaaS. Shows how much you pay for every $1 of revenue.
-            
-            **P/B (Price to Book):** Measures the market price against the company's net asset value.
+            **P/E (Price to Earnings):** Valuation benchmark. Low (<20) is 'value', High (>40) is 'growth/expensive'.
+            **P/S (Price to Sales):** Market price vs. Revenue. Critical for growth firms.
+            **P/B (Price to Book):** Market price vs. Net Assets.
             """)
-
         with t2:
             st.markdown("""
-            **ROE (Return on Equity):** Tells you how much profit the company generates with the money shareholders have invested. Over 18% is elite.
-            
-            **Profit Margin:** Percentage of revenue left after all expenses. High margins indicate a strong "moat" or brand power.
+            **ROE (Return on Equity):** Efficiency of capital. Over 18% is elite performance.
+            **Profit Margin:** What's left after costs. Higher margins = stronger competitive 'moat'.
             """)
-
         with t3:
             st.markdown("""
-            **Debt/Equity:** A ratio of 1.0 means debt equals equity. We prefer < 0.8 for safety.
-            
-            **Current Ratio:** Measures if the company can pay its short-term bills. A ratio > 1.5 is healthy.
-            
-            **Upside:** The gap between current price and professional analyst targets.
+            **Debt/Equity:** Solvency check. We prefer < 0.8 for long-term safety.
+            **Current Ratio:** Ability to pay short-term bills. > 1.5 is the healthy target.
             """)
 
     except Exception as e:
