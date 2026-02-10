@@ -219,7 +219,7 @@ if run_btn or ticker_input:
             
             **Upside:** The gap between current price and professional analyst targets.
             """)
-       with t4:
+        with t4:
             st.markdown("""
             ### How the Verdict is Calculated
             The bot uses a weighted algorithm to ensure we don't buy a "cheap" stock that is actually dying, or an "expensive" stock that is a rocket ship.
