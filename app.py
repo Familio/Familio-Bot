@@ -189,62 +189,10 @@ if run_btn or ticker_input:
             })
             st.table(df_health)
 
-        # --- 10. FINAL EXPLANATION SECTION ---
-        st.divider()
-        st.header("📖 Analysis Guide & Methodology")
-        
-        tab1, tab2, tab3 = st.tabs(["📊 Fundamental Pillars", "📈 Technical Signals", "🤖 The Scoring Engine"])
-
-        with tab1:
-            st.markdown("""
-            ### The 5 Pillars of Value
-            These metrics tell us if the company is a "money-making machine" or a "money pit."
-            
-            1. **P/E (Trailing & Forward):** The most common valuation tool. 
-               * *Trailing* is based on last year; *Forward* is based on analyst predictions. 
-               * **Cheap:** < 20 | **Average:** 20-40 | **Expensive:** > 40.
-            2. **ROE (Return on Equity):** Measures efficiency. 
-               * High ROE (>18%) means management is excellent at turning shareholder cash into profit.
-            3. **Debt/Equity:** Financial health. 
-               * A ratio < 0.8 means the company owns much more than it owes. High debt (>1.6) is a red flag.
-            4. **P/S (Price to Sales):** Measures revenue value. 
-               * Essential for growth stocks that don't have consistent profits yet.
-            5. **P/B (Price to Book):** The "Liquidation" value. 
-               * If the company went bankrupt tomorrow, what are the physical assets worth?
-            """)
-
-        with tab2:
-            st.markdown("""
-            ### Technical Indicators (Chart Analysis)
-            These metrics tell us if *now* is a good time to enter the trade.
-            
-            * **RSI (Relative Strength Index):** * **Overbought (>70):** The stock is "too hot" and might crash soon.
-               * **Oversold (<30):** The stock is "on sale" and might bounce up.
-            * **EMA (Exponential Moving Average):** * When the **50 EMA** is above the **200 EMA**, the stock is in a "Golden" uptrend.
-            * **Analyst Upside:** * This represents the average price target from professional Wall Street analysts compared to the current price.
-            """)
-
-        with tab3:
-            st.markdown(fr"""
-            ### How the "Naim Verdict" is Calculated
-            The bot uses a weighted algorithm to ensure we don't buy a "cheap" stock that is actually dying, or an "expensive" stock that is a rocket ship.
-            
-            #### 1. The Math
-            We calculate a **Fundamental Base (70%)** and add a **Technical Bonus (30%)**.
-            
-            $$Score = (Fund\_Score \times 0.7) + (Tech\_Score)$$
-            
-            #### 2. The Logic Gates
-            * **Strong Buy (80-100):** Perfect alignment. Great value and a positive chart trend.
-            * **Buy (60-79):** Solid fundamentals, though the entry price might not be "perfect."
-            * **Hold (40-59):** The stock is "Fairly Valued." Not a bargain, but not a disaster.
-            * **Sell (<40):** Either the business is struggling with debt/low ROE, or the price is extremely overextended (bubble territory).
-            """)
-
  # --- 7. EXPLANATION SECTION ---
         st.divider()
         st.header("📖 Methodology & Indicator Guide")
-        t1, t2, t3 = st.tabs(["💵 Valuation", "🏆 Performance", "🛡️ Safety"])
+        t1, t2, t3, t4= st.tabs(["💵 Valuation", "🏆 Performance", "🛡️ Safety",🤖 The Scoring Engine])
 
         with t1:
             st.markdown("""
@@ -264,13 +212,30 @@ if run_btn or ticker_input:
 
         with t3:
             st.markdown("""
-            **Debt/Equity:** A ratio of 1.0 means debt equals equity. We prefer < 0.8 for safety.
+            **Debt/Equity:** A ratio of 1.0 means debt equals equity. A ratio < 0.8 means the company owns much more than it owes. 
+            High debt (>1.6) is a red flag.
             
             **Current Ratio:** Measures if the company can pay its short-term bills. A ratio > 1.5 is healthy.
             
             **Upside:** The gap between current price and professional analyst targets.
             """)
-
+       with t4:
+            st.markdown("""
+            ### How the Verdict is Calculated
+            The bot uses a weighted algorithm to ensure we don't buy a "cheap" stock that is actually dying, or an "expensive" stock that is a rocket ship.
+            
+            #### 1. The Math
+            We calculate a **Fundamental Base (70%)** and add a **Technical Bonus (30%)**.
+            
+            $$Score = (Fund\_Score \times 0.7) + (Tech\_Score)$$
+            
+            #### 2. The Logic Gates
+            * **Strong Buy (80-100):** Perfect alignment. Great value and a positive chart trend.
+            * **Buy (60-79):** Solid fundamentals, though the entry price might not be "perfect."
+            * **Hold (40-59):** The stock is "Fairly Valued." Not a bargain, but not a disaster.
+            * **Sell (<40):** Either the business is struggling with debt/low ROE, or the price is extremely overextended (bubble territory).
+            """)
+            
     except Exception as e:
         st.error(f"Error: {e}")
 
