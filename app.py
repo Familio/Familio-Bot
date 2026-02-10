@@ -192,7 +192,7 @@ if run_btn or ticker_input:
  # --- 7. EXPLANATION SECTION ---
         st.divider()
         st.header("📖 Methodology & Indicator Guide")
-        t1, t2, t3, t4= st.tabs(["💵 Valuation", "🏆 Performance", "🛡️ Safety",🤖 The Scoring Engine])
+        t1, t2, t3, t4= st.tabs(["💵 Valuation", "🏆 Performance", "🛡️ Safety","🤖 The Scoring Engine"])
 
         with t1:
             st.markdown("""
