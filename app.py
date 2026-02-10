@@ -195,5 +195,53 @@ if run_btn or ticker_input:
                                        "Value": [f"{roe:.2f}%", f"{profit_margin:.2f}%", f"{debt:.2f}", f"{current_ratio:.2f}"],
                                        "Rating": [l_roe, l_margin, l_debt, l_cr]}))
 
+ # --- 7. EXPLANATION SECTION for STOCKS---
+        st.divider()
+        st.header("📖 Methodology & Indicator Guide")
+        t1, t2, t3, t4= st.tabs(["💵 Valuation", "🏆 Performance", "🛡️ Safety","🤖 The Scoring Engine"])
+
+        with t1:
+            st.markdown("""
+            **P/E (Price to Earnings):** The gold standard for valuation. A P/E under 20 is often considered 'value' territory, while over 40 suggests high growth expectations or a bubble.
+            
+            **P/S (Price to Sales):** Critical for Tech/SaaS. Shows how much you pay for every $1 of revenue.
+            
+            **P/B (Price to Book):** Measures the market price against the company's net asset value.
+            """)
+
+        with t2:
+            st.markdown("""
+            **ROE (Return on Equity):** Tells you how much profit the company generates with the money shareholders have invested. Over 18% is elite.
+            
+            **Profit Margin:** Percentage of revenue left after all expenses. High margins indicate a strong "moat" or brand power.
+            """)
+
+        with t3:
+            st.markdown("""
+            **Debt/Equity:** A ratio of 1.0 means debt equals equity. A ratio < 0.8 means the company owns much more than it owes. 
+            High debt (>1.6) is a red flag.
+            
+            **Current Ratio:** Measures if the company can pay its short-term bills. A ratio > 1.5 is healthy.
+            
+            **Upside:** The gap between current price and professional analyst targets.
+            """)
+        with t4:
+            st.markdown("""
+            ### How the Verdict is Calculated
+            The bot uses a weighted algorithm to ensure we don't buy a "cheap" stock that is actually dying, or an "expensive" stock that is a rocket ship.
+            
+            #### 1. The Math
+            We calculate a **Fundamental Base (70%)** and add a **Technical Bonus (30%)**.
+            
+            $$Score = (Fund\_Score \times 0.7) + (Tech\_Score)$$
+            
+            #### 2. The Logic Gates
+            * **Strong Buy (80-100):** Perfect alignment. Great value and a positive chart trend.
+            * **Buy (60-79):** Solid fundamentals, though the entry price might not be "perfect."
+            * **Hold (40-59):** The stock is "Fairly Valued." Not a bargain, but not a disaster.
+            * **Sell (<40):** Either the business is struggling with debt/low ROE, or the price is extremely overextended (bubble territory).
+            """)
+            
+
     except Exception as e:
         st.error(f"Analysis failed: {e}")
