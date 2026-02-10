@@ -66,7 +66,7 @@ with st.sidebar:
         "COIN": "COINBASE", "META": "META", "MSFT": "Microsoft", 
         "AMZN": "Amazon", "GOOGL": "Alphabet", "TSLA": "Tesla", 
         "LCID": "LUCID", "NIO": "NIO", "BAYER": "BAYER", 
-        "TSM": "Taiwan Semi","1810: "XIAOMI"
+        "TSM": "Taiwan Semi",
     }
     
     for symbol, name in watchlist.items():
