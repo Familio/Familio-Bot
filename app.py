@@ -241,6 +241,36 @@ if run_btn or ticker_input:
             * **Sell (<40):** Either the business is struggling with debt/low ROE, or the price is extremely overextended (bubble territory).
             """)
 
+ # --- 7. EXPLANATION SECTION ---
+        st.divider()
+        st.header("📖 Methodology & Indicator Guide")
+        t1, t2, t3 = st.tabs(["💵 Valuation", "🏆 Performance", "🛡️ Safety"])
+
+        with t1:
+            st.markdown("""
+            **P/E (Price to Earnings):** The gold standard for valuation. A P/E under 20 is often considered 'value' territory, while over 40 suggests high growth expectations or a bubble.
+            
+            **P/S (Price to Sales):** Critical for Tech/SaaS. Shows how much you pay for every $1 of revenue.
+            
+            **P/B (Price to Book):** Measures the market price against the company's net asset value.
+            """)
+
+        with t2:
+            st.markdown("""
+            **ROE (Return on Equity):** Tells you how much profit the company generates with the money shareholders have invested. Over 18% is elite.
+            
+            **Profit Margin:** Percentage of revenue left after all expenses. High margins indicate a strong "moat" or brand power.
+            """)
+
+        with t3:
+            st.markdown("""
+            **Debt/Equity:** A ratio of 1.0 means debt equals equity. We prefer < 0.8 for safety.
+            
+            **Current Ratio:** Measures if the company can pay its short-term bills. A ratio > 1.5 is healthy.
+            
+            **Upside:** The gap between current price and professional analyst targets.
+            """)
+
     except Exception as e:
         st.error(f"Error: {e}")
 
