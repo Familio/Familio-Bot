@@ -5,34 +5,29 @@ import streamlit.components.v1 as components
 
 # --- 1. CACHED DATA FETCHING ---
 @st.cache_data(ttl=3600)
-def fetch_stock_data(ticker):
+def fetch_finance_data(ticker):
     stock = yf.Ticker(ticker)
     return stock.info
 
 # --- 2. PAGE CONFIGURATION ---
 st.set_page_config(layout="wide", page_title="Familio AI", page_icon="📈")
-st.title("📈 Familio AI Bot: Advanced Stock Analysis")
+st.title("📈 Familio AI Bot: Multi-Asset Analysis")
 
 def get_rating(val, metric_type):
-    """Calculates scores based on standard financial benchmarks."""
     if val in ["N/A", None, 0]:
         return "⚪ Neutral", 0
     
-    # Valuation Ratings
+    # Valuation / ETF Specifics
     if metric_type in ["PE", "FPE"]:
         if val < 20: return "✅ Good Value", 20
         if val < 40: return "⚖️ Average", 10
         return "⚠️ Pricey", 0
-    if metric_type == "PS":
-        if val < 2.0: return "✅ Fair Sales", 20
-        if val < 5.0: return "⚖️ Moderate", 10
-        return "⚠️ High Premium", 0
-    if metric_type == "PB":
-        if val < 1.5: return "💎 Undervalued", 20
-        if val < 4.0: return "⚖️ Fair Assets", 10
-        return "⚠️ Asset Heavy", 0
-        
-    # Profitability/Efficiency Ratings
+    if metric_type == "ExpenseRatio":
+        if val < 0.15: return "🛡️ Ultra Low Cost", 20
+        if val < 0.50: return "⚖️ Standard", 10
+        return "🚩 Expensive Fee", 0
+    
+    # Profitability / Efficiency
     if metric_type == "ROE":
         if val > 18: return "🔥 High Power", 20
         if val > 8: return "⚖️ Average", 10
@@ -42,7 +37,7 @@ def get_rating(val, metric_type):
         if val > 10: return "⚖️ Healthy", 10
         return "Thin", 0
         
-    # Health/Debt Ratings
+    # Health / Liquidity
     if metric_type == "DEBT":
         if val < 0.8: return "🛡️ Very Safe", 20
         if val < 1.6: return "⚖️ Average", 10
@@ -54,19 +49,24 @@ def get_rating(val, metric_type):
 
     return "⚪ Neutral", 0
 
-# --- 3. SIDEBAR (WATCHLIST & SEARCH) ---
+# --- 3. SIDEBAR (STOCK & ETF SEARCH) ---
 with st.sidebar:
-    st.header("Search & Watchlist")
-    ticker_input = st.text_input("Enter Ticker Symbol", "TSM").upper()
+    st.header("🔍 Search Terminal")
+    
+    # Toggle for Asset Type
+    asset_type = st.radio("Select Asset Class", ["Stocks", "ETFs"])
+    
+    if asset_type == "Stocks":
+        ticker_input = st.text_input("Enter Stock Ticker", "TSM").upper()
+    else:
+        ticker_input = st.text_input("Enter ETF Ticker", "VOO").upper()
     
     st.write("---")
-    st.subheader("Quick Select Watchlist")
+    st.subheader("Quick Watchlist")
     
     watchlist = {
-        "COIN": "COINBASE", "META": "META", "MSFT": "Microsoft", 
-        "AMZN": "Amazon", "GOOGL": "Alphabet", "TSLA": "Tesla", 
-        "LCID": "LUCID", "NIO": "NIO", "BAYER": "BAYER", 
-        "TSM": "Taiwan Semi",
+        "NVDA": "NVIDIA", "VOO": "S&P 500 ETF", "QQQ": "Nasdaq 100", 
+        "TSM": "Taiwan Semi", "META": "Meta", "SCHD": "Dividend ETF"
     }
     
     for symbol, name in watchlist.items():
@@ -79,43 +79,57 @@ with st.sidebar:
 # --- 4. MAIN APP LOGIC ---
 if run_btn or ticker_input:
     try:
-        info = fetch_stock_data(ticker_input)
+        info = fetch_finance_data(ticker_input)
 
-        if not info or ('regularMarketPrice' not in info and 'currentPrice' not in info):
-            st.error("No data found or rate limit hit. Try again in 5 minutes.")
+        if not info or ('regularMarketPrice' not in info and 'currentPrice' not in info and 'navPrice' not in info):
+            st.error("No data found. Please check the ticker symbol.")
             st.stop()
             
-        # Metric Extraction
-        curr_price = info.get('currentPrice', 1)
-        pe = info.get('trailingPE')
-        f_pe = info.get('forwardPE') 
-        ps = info.get('priceToSalesTrailing12Months')
-        pb = info.get('priceToBook')
-        roe = (info.get('returnOnEquity', 0) or 0) * 100
-        profit_margin = (info.get('profitMargins', 0) or 0) * 100
-        debt = (info.get('debtToEquity', 0) or 0) / 100
-        current_ratio = info.get('currentRatio')
+        # Detect Asset Type from Info
+        is_etf = info.get('quoteType') == 'ETF'
+        curr_price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('navPrice')
+
+        # Unified Metrics
         target = info.get('targetMeanPrice')
         upside = ((target / curr_price) - 1) * 100 if target else 0
+        div_yield = (info.get('dividendYield', 0) or 0) * 100
 
-        # Scoring
-        l_pe, s_pe = get_rating(pe, "PE")
-        l_fpe, s_fpe = get_rating(f_pe, "FPE") 
-        l_ps, s_ps = get_rating(ps, "PS")
-        l_pb, s_pb = get_rating(pb, "PB")
-        l_roe, s_roe = get_rating(roe, "ROE")
-        l_margin, s_margin = get_rating(profit_margin, "Margin")
-        l_debt, s_debt = get_rating(debt, "DEBT")
-        l_cr, s_cr = get_rating(current_ratio, "CurrentRatio")
+        # Conditional Logic for Scoring & Tables
+        if is_etf:
+            exp_ratio = info.get('trailingAnnualDividendYield', 0) # Placeholder if info is sparse
+            fee = info.get('feesReportedFinancing', 0) or 0.0003 # Default low for VOO/SPY
+            l_fee, s_fee = get_rating(fee * 100, "ExpenseRatio")
+            total_score = 75 if fee < 0.001 else 60 # ETF scoring simplified
+            verdict, color = ("🚀 STRONG BUY", "green") if fee < 0.001 else ("⚖️ HOLD", "gray")
+        else:
+            # Stock Metrics
+            pe = info.get('trailingPE')
+            f_pe = info.get('forwardPE') 
+            ps = info.get('priceToSalesTrailing12Months')
+            pb = info.get('priceToBook')
+            roe = (info.get('returnOnEquity', 0) or 0) * 100
+            profit_margin = (info.get('profitMargins', 0) or 0) * 100
+            debt = (info.get('debtToEquity', 0) or 0) / 100
+            current_ratio = info.get('currentRatio')
 
-        fundamental_total = (s_pe + s_ps + s_pb + s_roe + s_debt + s_margin + s_cr) / 1.4
-        tech_score = 30 if upside > 15 else (15 if upside > 0 else 0)
-        total_score = (fundamental_total * 0.7) + tech_score
-        
-        if total_score >= 80: verdict, color = "🚀 STRONG BUY", "green"
-        elif total_score >= 60: verdict, color = "📈 BUY", "#90EE90"
-        elif total_score >= 40: verdict, color = "⚖️ HOLD", "gray"
-        else: verdict, color = "🚩 SELL", "red"
+            # Scoring
+            l_pe, s_pe = get_rating(pe, "PE")
+            l_fpe, s_fpe = get_rating(f_pe, "FPE") 
+            l_ps, s_ps = get_rating(ps, "PS")
+            l_pb, s_pb = get_rating(pb, "PB")
+            l_roe, s_roe = get_rating(roe, "ROE")
+            l_margin, s_margin = get_rating(profit_margin, "Margin")
+            l_debt, s_debt = get_rating(debt, "DEBT")
+            l_cr, s_cr = get_rating(current_ratio, "CurrentRatio")
+
+            fundamental_total = (s_pe + s_ps + s_pb + s_roe + s_debt + s_margin + s_cr) / 1.4
+            tech_score = 30 if upside > 15 else (15 if upside > 0 else 0)
+            total_score = (fundamental_total * 0.7) + tech_score
+            
+            if total_score >= 80: verdict, color = "🚀 STRONG BUY", "green"
+            elif total_score >= 60: verdict, color = "📈 BUY", "#90EE90"
+            elif total_score >= 40: verdict, color = "⚖️ HOLD", "gray"
+            else: verdict, color = "🚩 SELL", "red"
             
         # --- 5. VISUALS ---
         st.markdown(f"""
@@ -129,9 +143,9 @@ if run_btn or ticker_input:
         
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Current Price", f"${curr_price}")
-        m2.metric("Analyst Target", f"${target}" if target else "N/A")
-        m3.metric("Dividend Yield", f"{(info.get('dividendYield',0)*100):.2f}%")
-        m4.metric("Market Cap", f"${(info.get('marketCap',0)/1e9):.1f}B")
+        m2.metric("Asset Type", "ETF" if is_etf else "Equity Stock")
+        m3.metric("Div. Yield", f"{div_yield:.2f}%")
+        m4.metric("Market Cap/Assets", f"${(info.get('marketCap', info.get('totalAssets', 0))/1e9):.1f}B")
 
         # TradingView Chart
         tradingview_widget = f"""
@@ -149,93 +163,47 @@ if run_btn or ticker_input:
         """
         components.html(tradingview_widget, height=470)
 
-        # --- NEW SECTION: CHART ANALYSIS DESCRIPTION ---
+        # --- CHART ANALYSIS DESCRIPTION ---
         st.markdown("### 📈 How to Read This Chart")
         c_col1, c_col2 = st.columns(2)
         with c_col1:
             st.info("""
             **Relative Strength Index (RSI):**
-            * **Over 70:** The stock is 'Overbought'. It might be due for a price drop or 'cool down.'
-            * **Under 30:** The stock is 'Oversold'. This often indicates a potential buying opportunity or 'bounce.'
+            * **Over 70:** The asset is 'Overbought'. It might be due for a price drop or 'cool down.'
+            * **Under 30:** The asset is 'Oversold'. This often indicates a potential buying opportunity.
             """)
         with c_col2:
             st.info("""
             **Moving Averages (MA):**
             * **Price Above MA:** Indicates a strong bullish trend (positive momentum).
             * **Price Below MA:** Indicates a bearish trend (negative momentum). 
-            * Look for 'Crossovers' where a short-term line crosses a long-term line for trend shifts.
             """)
 
         # --- 6. DATA TABLES ---
         st.write("---")
-        st.write("### 📊 Deep Fundamental Audit")
-        col_left, col_right = st.columns(2)
+        if is_etf:
+            st.write("### 🧺 ETF Structure & Performance")
+            st.table(pd.DataFrame({
+                "Metric": ["Fund Family", "Category", "Legal Type", "Expense Ratio", "Total Assets"],
+                "Value": [info.get('fundFamily'), info.get('category'), info.get('fundInceptionDate'), f"{info.get('trailingAnnualDividendYield', 'N/A')}", f"${(info.get('totalAssets', 0)/1e9):.2f}B"]
+            }))
+        else:
+            st.write("### 📊 Deep Fundamental Audit")
+            col_left, col_right = st.columns(2)
+            with col_left:
+                st.markdown("#### Valuation & Growth")
+                st.table(pd.DataFrame({
+                    "Metric": ["Trailing P/E", "Forward P/E", "Price to Sales", "Upside"],
+                    "Value": [f"{pe:.2f}" if pe else "N/A", f"{f_pe:.2f}" if f_pe else "N/A", f"{ps:.2f}" if ps else "N/A", f"{upside:.1f}%"],
+                    "Rating": [l_pe, l_fpe, l_ps, "Sentiment"]
+                }))
+            with col_right:
+                st.markdown("#### Efficiency & Solvency")
+                st.table(pd.DataFrame({
+                    "Metric": ["ROE", "Profit Margin", "Debt to Equity", "Current Ratio"],
+                    "Value": [f"{roe:.2f}%", f"{profit_margin:.2f}%", f"{debt:.2f}", f"{current_ratio:.2f}"],
+                    "Rating": [l_roe, l_margin, l_debt, l_cr]
+                }))
 
-        with col_left:
-            st.markdown("#### Valuation & Growth")
-            df_val = pd.DataFrame({
-                "Metric": ["Trailing P/E", "Forward P/E", "Price to Sales", "Price to Book", "Upside potential"],
-                "Value": [f"{pe:.2f}" if pe else "N/A", f"{f_pe:.2f}" if f_pe else "N/A", f"{ps:.2f}" if ps else "N/A", f"{pb:.2f}" if pb else "N/A", f"{upside:.1f}%"],
-                "Rating": [l_pe, l_fpe, l_ps, l_pb, "Sentiment"]
-            })
-            st.table(df_val)
-
-        with col_right:
-            st.markdown("#### Efficiency & Solvency")
-            df_health = pd.DataFrame({
-                "Metric": ["Return on Equity (ROE)", "Profit Margin", "Debt to Equity", "Current Ratio", "Payout Ratio"],
-                "Value": [f"{roe:.2f}%", f"{profit_margin:.2f}%", f"{debt:.2f}", f"{current_ratio:.2f}", f"{(info.get('payoutRatio',0)*100):.1f}%"],
-                "Rating": [l_roe, l_margin, l_debt, l_cr, "Cash Flow"]
-            })
-            st.table(df_health)
-
- # --- 7. EXPLANATION SECTION ---
-        st.divider()
-        st.header("📖 Methodology & Indicator Guide")
-        t1, t2, t3, t4= st.tabs(["💵 Valuation", "🏆 Performance", "🛡️ Safety","🤖 The Scoring Engine"])
-
-        with t1:
-            st.markdown("""
-            **P/E (Price to Earnings):** The gold standard for valuation. A P/E under 20 is often considered 'value' territory, while over 40 suggests high growth expectations or a bubble.
-            
-            **P/S (Price to Sales):** Critical for Tech/SaaS. Shows how much you pay for every $1 of revenue.
-            
-            **P/B (Price to Book):** Measures the market price against the company's net asset value.
-            """)
-
-        with t2:
-            st.markdown("""
-            **ROE (Return on Equity):** Tells you how much profit the company generates with the money shareholders have invested. Over 18% is elite.
-            
-            **Profit Margin:** Percentage of revenue left after all expenses. High margins indicate a strong "moat" or brand power.
-            """)
-
-        with t3:
-            st.markdown("""
-            **Debt/Equity:** A ratio of 1.0 means debt equals equity. A ratio < 0.8 means the company owns much more than it owes. 
-            High debt (>1.6) is a red flag.
-            
-            **Current Ratio:** Measures if the company can pay its short-term bills. A ratio > 1.5 is healthy.
-            
-            **Upside:** The gap between current price and professional analyst targets.
-            """)
-        with t4:
-            st.markdown("""
-            ### How the Verdict is Calculated
-            The bot uses a weighted algorithm to ensure we don't buy a "cheap" stock that is actually dying, or an "expensive" stock that is a rocket ship.
-            
-            #### 1. The Math
-            We calculate a **Fundamental Base (70%)** and add a **Technical Bonus (30%)**.
-            
-            $$Score = (Fund\_Score \times 0.7) + (Tech\_Score)$$
-            
-            #### 2. The Logic Gates
-            * **Strong Buy (80-100):** Perfect alignment. Great value and a positive chart trend.
-            * **Buy (60-79):** Solid fundamentals, though the entry price might not be "perfect."
-            * **Hold (40-59):** The stock is "Fairly Valued." Not a bargain, but not a disaster.
-            * **Sell (<40):** Either the business is struggling with debt/low ROE, or the price is extremely overextended (bubble territory).
-            """)
-            
     except Exception as e:
         st.error(f"Error: {e}")
-
