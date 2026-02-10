@@ -63,10 +63,10 @@ with st.sidebar:
     st.subheader("Quick Select Watchlist")
     
     watchlist = {
-        "NVDA": "NVIDIA", "AAPL": "Apple", "MSFT": "Microsoft", 
+        "COIN": "COINBASE", "META": "META", "MSFT": "Microsoft", 
         "AMZN": "Amazon", "GOOGL": "Alphabet", "TSLA": "Tesla", 
-        "AVGO": "Broadcom", "LLY": "Eli Lilly", "JPM": "JPMorgan", 
-        "TSM": "Taiwan Semi"
+        "LCID": "LUCID", "NIO": "NIO", "BAYER": "BAYER", 
+        "TSM": "Taiwan Semi","1810: "XIAOMI"
     }
     
     for symbol, name in watchlist.items():
