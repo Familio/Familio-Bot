@@ -65,7 +65,7 @@ with st.sidebar:
         watchlist = {
             "COIN": "Coinbase", "META": "Meta", "MSFT": "Microsoft", 
             "AMZN": "Amazon", "GOOGL": "Alphabet", "TSLA": "Tesla", 
-            "NVDA": "NVIDIA", "AAPL": "Apple", "LLY": "Eli Lilly", "TSM": "Taiwan Semi"
+            "PYPL": "Paypal", "HOOD": "Robinhood", "LLY": "Eli Lilly", "TSM": "Taiwan Semi"
         }
     else:
         ticker_input = st.text_input("Enter ETF Ticker", "VOO").upper()
