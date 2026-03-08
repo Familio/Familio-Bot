@@ -164,4 +164,84 @@ if run_btn or ticker_input:
                 st.markdown(f"""<div style="background-color:white; padding:25px; border-radius:15px; text-align:center; border: 2px solid {rec_color}; height: 100%;">
                     <h3 style="color:gray; margin:0; font-size: 16px;">Analyst Consensus</h3>
                     <h2 style="color:{rec_color}; margin:10px 0;">{rec_text}</h2>
-                    <p style="color:gray; font-size: 12px;">Based on {analyst_count} analysts</p></div>""", unsafe_allow_html
+                    <p style="color:gray; font-size: 12px;">Based on {analyst_count} analysts</p></div>""", unsafe_allow_html=True)
+
+        st.subheader(f"Live Analysis: {info.get('longName', ticker_input)}")
+        
+        if is_etf:
+            st.divider()
+            st.header("📂 ETF Overview & Composition")
+            ecol1, ecol2 = st.columns([2, 1])
+            with ecol1:
+                st.write(info.get('longBusinessSummary', "Description not available."))
+            with ecol2:
+                allocation = {"Asset": ["Stocks", "Bonds", "Cash", "Other"], 
+                              "Weight": [info.get('fundProfile', {}).get('stockPosition', 98.5), 
+                                         info.get('fundProfile', {}).get('bondPosition', 0.5), 
+                                         info.get('fundProfile', {}).get('cashPosition', 1.0), 0]}
+                st.plotly_chart(px.pie(allocation, values='Weight', names='Asset', hole=0.5), use_container_width=True)
+
+        # Chart
+        tv_widget = f"""<div class="tradingview-widget-container"><div id="tv_chart"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+          <script type="text/javascript">
+          new TradingView.widget({{"width": "100%", "height": 450, "symbol": "{ticker_input}", "interval": "D", "theme": "light", "style": "1", "studies": ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"]}});
+          </script></div>"""
+        components.html(tv_widget, height=470)
+
+        # Audit Tables
+        if not is_etf:
+            st.write("### 📊 Fundamental Audit")
+            col_left, col_right = st.columns(2)
+            
+            # Define insider rating icon
+            insider_signal = "🟢 Buying" if insider_trans > 0 else ("🔴 Selling" if insider_trans < 0 else "⚪ Static")
+            
+            with col_left:
+                st.table(pd.DataFrame({"Metric": ["Trailing P/E", "PEG Ratio", "P/S Ratio", "Insider Own %", "Insider Trans (6M)"], 
+                                       "Value": [f"{pe:.2f}" if pe else "N/A", f"{peg:.2f}" if peg else "N/A", f"{ps:.2f}" if ps else "N/A", f"{insider_own:.2f}%", f"{insider_trans:.2f}%"],
+                                       "Rating": [l_pe, l_peg, l_ps, "🔍 Skin in Game", insider_signal]}))
+            with col_right:
+                st.table(pd.DataFrame({"Metric": ["ROE %", "ROIC %", "Profit Margin", "Debt/Equity", "Short Interest %"],
+                                       "Value": [f"{roe:.2f}%" if roe else "N/A", f"{roic:.2f}%" if roic else "N/A", f"{profit_margin:.2f}%" if profit_margin else "N/A", f"{debt:.2f}" if debt else "N/A", f"{short_ratio:.2f}%"],
+                                       "Rating": [l_roe, l_roic, l_margin, l_debt, "⚠️ Risk Factor"]}))
+
+        # --- 7. DETAILED EXPLANATIONS ---
+        st.divider()
+        st.header("📖 Methodology & Indicator Guide")
+        t1, t2, t3, t4= st.tabs(["💵 Valuation Metrics", "🏆 Efficiency Metrics", "🛡️ Safety & Sentiment","🤖 The Scoring Engine"])
+
+        with t1:
+            st.markdown("""
+            ### Deep Valuation Insights
+            * **PEG Ratio (Price/Earnings to Growth):** This is the P/E ratio divided by the growth rate. A PEG < 1.0 means you are paying less for growth than it's worth.
+            * **P/S (Price to Sales):** Measures the market value per dollar of revenue.
+            """)
+            
+        with t2:
+            st.markdown("""
+            ### Management Efficiency
+            * **ROIC (Return on Invested Capital):** This measures how well management turns capital into profit.
+            * **ROE (Return on Equity):** Measures profitability relative to shareholder money.
+            """)
+            
+        with t3:
+            st.markdown("""
+            ### Safety & Insider Sentiment
+            * **Insider Ownership:** The % of the company owned by the people running it.
+            * **Insider Transactions (6M):** This shows whether insiders have been net buyers or net sellers over the last 6 months. 
+                * **Net Buying (Positive %):** Signals strong internal confidence.
+                * **Net Selling (Negative %):** Often just profit-taking, but worth watching if the trend is heavy.
+            * **Short Interest:** The % of shares being bet against. High short interest (>10%) can signal trouble.
+            """)
+            
+
+        with t4:
+            st.markdown(r"""
+            ### The Scoring Engine
+            Score is calculated as:
+            $$Total\ Score = \left(\frac{\sum Metrics}{1.8} \times 0.7\right) + Upside\ Bonus$$
+            """)
+
+    except Exception as e:
+        st.error(f"Analysis failed: {e}")
