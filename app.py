@@ -32,9 +32,13 @@ def get_rating(val, metric_type):
         if val < 1.5: return "💎 Undervalued", 20
         if val < 4.0: return "⚖️ Fair Assets", 10
         return "⚠️ Asset Heavy", 0
+    if metric_type == "PEG":
+        if val < 1.0: return "🔥 High Growth Value", 20
+        if val < 2.0: return "⚖️ Fair Growth", 10
+        return "⚠️ Slow Growth/Overpriced", 0
         
     # Profitability/Efficiency Ratings
-    if metric_type == "ROE":
+    if metric_type == "ROE" or metric_type == "ROIC":
         if val > 18: return "🔥 High Power", 20
         if val > 8: return "⚖️ Average", 10
         return "🐌 Slow", 0
@@ -106,8 +110,11 @@ if run_btn or ticker_input:
         # Logic for Scoring
         if not is_etf:
             pe, f_pe, ps, pb = info.get('trailingPE'), info.get('forwardPE'), info.get('priceToSalesTrailing12Months'), info.get('priceToBook')
-            roe, profit_margin = (info.get('returnOnEquity', 0) or 0) * 100, (info.get('profitMargins', 0) or 0) * 100
+            peg = info.get('pegRatio')
+            roe, roic, profit_margin = (info.get('returnOnEquity', 0) or 0) * 100, (info.get('returnOnAssets', 0) or 0) * 100, (info.get('profitMargins', 0) or 0) * 100
             debt, current_ratio = (info.get('debtToEquity', 0) or 0) / 100, info.get('currentRatio')
+            insider_own = (info.get('heldPercentInsiders', 0) or 0) * 100
+            short_ratio = info.get('shortPercentOfFloat', 0) * 100
             target = info.get('targetMeanPrice')
             upside = ((target / curr_price) - 1) * 100 if (target and curr_price) else 0
             
@@ -121,12 +128,14 @@ if run_btn or ticker_input:
             l_fpe, s_fpe = get_rating(f_pe, "FPE") 
             l_ps, s_ps = get_rating(ps, "PS")
             l_pb, s_pb = get_rating(pb, "PB")
+            l_peg, s_peg = get_rating(peg, "PEG")
             l_roe, s_roe = get_rating(roe, "ROE")
+            l_roic, s_roic = get_rating(roic, "ROIC")
             l_margin, s_margin = get_rating(profit_margin, "Margin")
             l_debt, s_debt = get_rating(debt, "DEBT")
             l_cr, s_cr = get_rating(current_ratio, "CurrentRatio")
 
-            fundamental_total = (s_pe + s_ps + s_pb + s_roe + s_debt + s_margin + s_cr) / 1.4
+            fundamental_total = (s_pe + s_ps + s_pb + s_roe + s_debt + s_margin + s_cr + s_peg + s_roic) / 1.8
             tech_score = 30 if upside > 15 else (15 if upside > 0 else 0)
             total_score = (fundamental_total * 0.7) + tech_score
         else:
@@ -188,13 +197,13 @@ if run_btn or ticker_input:
             st.write("### 📊 Fundamental Audit")
             col_left, col_right = st.columns(2)
             with col_left:
-                st.table(pd.DataFrame({"Metric": ["Trailing P/E", "Forward P/E", "P/S Ratio", "P/B Ratio"], 
-                                       "Value": [f"{pe:.2f}" if pe else "N/A", f"{f_pe:.2f}" if f_pe else "N/A", f"{ps:.2f}" if ps else "N/A", f"{pb:.2f}" if pb else "N/A"],
-                                       "Rating": [l_pe, l_fpe, l_ps, l_pb]}))
+                st.table(pd.DataFrame({"Metric": ["Trailing P/E", "PEG Ratio", "P/S Ratio", "P/B Ratio", "Insider Own %"], 
+                                       "Value": [f"{pe:.2f}" if pe else "N/A", f"{peg:.2f}" if peg else "N/A", f"{ps:.2f}" if ps else "N/A", f"{pb:.2f}" if pb else "N/A", f"{insider_own:.2f}%"],
+                                       "Rating": [l_pe, l_peg, l_ps, l_pb, "🔍 Sentiment"]}))
             with col_right:
-                st.table(pd.DataFrame({"Metric": ["ROE %", "Profit Margin", "Debt/Equity", "Current Ratio"],
-                                       "Value": [f"{roe:.2f}%" if roe else "N/A", f"{profit_margin:.2f}%" if profit_margin else "N/A", f"{debt:.2f}" if debt else "N/A", f"{current_ratio:.2f}" if current_ratio else "N/A"],
-                                       "Rating": [l_roe, l_margin, l_debt, l_cr]}))
+                st.table(pd.DataFrame({"Metric": ["ROE %", "ROIC %", "Profit Margin", "Debt/Equity", "Short Interest %"],
+                                       "Value": [f"{roe:.2f}%" if roe else "N/A", f"{roic:.2f}%" if roic else "N/A", f"{profit_margin:.2f}%" if profit_margin else "N/A", f"{debt:.2f}" if debt else "N/A", f"{short_ratio:.2f}%"],
+                                       "Rating": [l_roe, l_roic, l_margin, l_debt, "⚠️ Risk Factor"]}))
 
         # --- 7. EXPLANATION SECTION for STOCKS---
         st.divider()
@@ -203,44 +212,30 @@ if run_btn or ticker_input:
 
         with t1:
             st.markdown("""
-            **P/E (Price to Earnings):** The gold standard for valuation. A P/E under 20 is often considered 'value' territory, while over 40 suggests high growth expectations or a bubble.
+            **PEG Ratio:** Price/Earnings to Growth. A PEG under 1.0 means you're buying growth at a discount.
             
-            **P/S (Price to Sales):** Critical for Tech/SaaS. Shows how much you pay for every $1 of revenue.
+            **P/E (Price to Earnings):** Standard valuation. A P/E under 20 is often considered 'value' territory.
             
-            **P/B (Price to Book):** Measures the market price against the company's net asset value.
+            **Insider Ownership:** High ownership means management's interests are aligned with yours.
             """)
 
         with t2:
             st.markdown("""
-            **ROE (Return on Equity):** Tells you how much profit the company generates with the money shareholders have invested. Over 18% is elite.
+            **ROIC (Return on Invested Capital):** Measures how effectively a company turns capital into profit. Over 15% is excellent.
             
-            **Profit Margin:** Percentage of revenue left after all expenses. High margins indicate a strong "moat" or brand power.
+            **ROE (Return on Equity):** How much profit the company generates with shareholder money.
             """)
 
         with t3:
             st.markdown("""
-            **Debt/Equity:** A ratio of 1.0 means debt equals equity. A ratio < 0.8 means the company owns much more than it owes. 
-            High debt (>1.6) is a red flag.
+            **Short Interest:** The % of shares being bet against. High short interest (>10%) can signal trouble or a potential 'short squeeze'.
             
-            **Current Ratio:** Measures if the company can pay its short-term bills. A ratio > 1.5 is healthy.
-            
-            **Upside:** The gap between current price and professional analyst targets.
+            **Debt/Equity:** A ratio of 1.0 means debt equals equity. Lower is safer.
             """)
         with t4:
             st.markdown("""
-            ### How the Verdict is Calculated
-            The bot uses a weighted algorithm to ensure we don't buy a "cheap" stock that is actually dying, or an "expensive" stock that is a rocket ship.
-            
-            #### 1. The Math
-            We calculate a **Fundamental Base (70%)** and add a **Technical Bonus (30%)**.
-            
-            $$Score = (Fund\_Score \times 0.7) + (Tech\_Score)$$
-            
-            #### 2. The Logic Gates
-            * **Strong Buy (80-100):** Perfect alignment. Great value and a positive chart trend.
-            * **Buy (60-79):** Solid fundamentals, though the entry price might not be "perfect."
-            * **Hold (40-59):** The stock is "Fairly Valued." Not a bargain, but not a disaster.
-            * **Sell (<40):** Either the business is struggling with debt/low ROE, or the price is extremely overextended (bubble territory).
+            ### Scoring Engine v2.0
+            We now incorporate **PEG** and **ROIC** into the Fundamental Base (70%), providing a more accurate picture of growth-adjusted value.
             """)
             
 
