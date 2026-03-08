@@ -55,6 +55,18 @@ def get_rating(val, metric_type):
 
     return "⚪ Neutral", 0
 
+def format_recommendation(rec):
+    """Formats the yfinance recommendation key."""
+    rec_map = {
+        "strong_buy": ("🚀 Strong Buy", "#006400"),
+        "buy": ("✅ Buy", "#228B22"),
+        "hold": ("⚖️ Hold", "#DAA520"),
+        "underperform": ("⚠️ Underperform", "#FF4500"),
+        "sell": ("🚩 Sell", "#8B0000"),
+        "none": ("N/A", "gray")
+    }
+    return rec_map.get(rec.lower(), ("N/A", "gray")) if rec else ("N/A", "gray")
+
 # --- 3. SIDEBAR (WATCHLIST & SEARCH) ---
 with st.sidebar:
     st.header("Search & Watchlist")
@@ -97,7 +109,12 @@ if run_btn or ticker_input:
             roe, profit_margin = (info.get('returnOnEquity', 0) or 0) * 100, (info.get('profitMargins', 0) or 0) * 100
             debt, current_ratio = (info.get('debtToEquity', 0) or 0) / 100, info.get('currentRatio')
             target = info.get('targetMeanPrice')
-            upside = ((target / curr_price) - 1) * 100 if target else 0
+            upside = ((target / curr_price) - 1) * 100 if (target and curr_price) else 0
+            
+            # --- ANALYST DATA ---
+            rec_key = info.get('recommendationKey')
+            rec_text, rec_color = format_recommendation(rec_key)
+            analyst_count = info.get('numberOfAnalystOpinions', 'N/A')
 
             # Scoring Mapping
             l_pe, s_pe = get_rating(pe, "PE")
@@ -124,9 +141,20 @@ if run_btn or ticker_input:
             else: verdict, color = "🚩 SELL", "red"
 
         # Display Verdict
-        st.markdown(f"""<div style="background-color:{color}; padding:25px; border-radius:15px; text-align:center; border: 2px solid white;">
-            <h1 style="color:white; margin:0;">Verdict: {verdict}</h1>
-            <h2 style="color:white; margin:0;">AI Score: {int(total_score)}/100</h2></div>""", unsafe_allow_html=True)
+        vcol1, vcol2 = st.columns([2, 1])
+        with vcol1:
+            st.markdown(f"""<div style="background-color:{color}; padding:25px; border-radius:15px; text-align:center; border: 2px solid white;">
+                <h1 style="color:white; margin:0;">Verdict: {verdict}</h1>
+                <h2 style="color:white; margin:0;">AI Score: {int(total_score)}/100</h2></div>""", unsafe_allow_html=True)
+        
+        with vcol2:
+            if not is_etf:
+                st.markdown(f"""<div style="background-color:white; padding:25px; border-radius:15px; text-align:center; border: 2px solid {rec_color}; height: 100%;">
+                    <h3 style="color:gray; margin:0; font-size: 16px;">Analyst Consensus</h3>
+                    <h2 style="color:{rec_color}; margin:10px 0;">{rec_text}</h2>
+                    <p style="color:gray; font-size: 12px;">Based on {analyst_count} analysts</p></div>""", unsafe_allow_html=True)
+            else:
+                st.info("Analyst ratings typically unavailable for ETFs.")
 
         st.subheader(f"Live Analysis: {info.get('longName', ticker_input)}")
         
@@ -165,7 +193,7 @@ if run_btn or ticker_input:
                                        "Rating": [l_pe, l_fpe, l_ps, l_pb]}))
             with col_right:
                 st.table(pd.DataFrame({"Metric": ["ROE %", "Profit Margin", "Debt/Equity", "Current Ratio"],
-                                       "Value": [f"{roe:.2f}%", f"{profit_margin:.2f}%", f"{debt:.2f}", f"{current_ratio:.2f}"],
+                                       "Value": [f"{roe:.2f}%" if roe else "N/A", f"{profit_margin:.2f}%" if profit_margin else "N/A", f"{debt:.2f}" if debt else "N/A", f"{current_ratio:.2f}" if current_ratio else "N/A"],
                                        "Rating": [l_roe, l_margin, l_debt, l_cr]}))
 
         # --- 7. EXPLANATION SECTION for STOCKS---
