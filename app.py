@@ -113,12 +113,9 @@ if run_btn or ticker_input:
             peg = info.get('pegRatio')
             roe, roic, profit_margin = (info.get('returnOnEquity', 0) or 0) * 100, (info.get('returnOnAssets', 0) or 0) * 100, (info.get('profitMargins', 0) or 0) * 100
             debt, current_ratio = (info.get('debtToEquity', 0) or 0) / 100, info.get('currentRatio')
-            
-            # INSIDER DATA
             insider_own = (info.get('heldPercentInsiders', 0) or 0) * 100
-            insider_trans = (info.get('insiderTransactionsRatio', 0) or 0) * 100 # Change in insider shares over 6 months
+            insider_trans = (info.get('insiderTransactionsRatio', 0) or 0) * 100
             short_ratio = (info.get('shortPercentOfFloat', 0) or 0) * 100
-            
             target = info.get('targetMeanPrice')
             upside = ((target / curr_price) - 1) * 100 if (target and curr_price) else 0
             
@@ -193,54 +190,65 @@ if run_btn or ticker_input:
         if not is_etf:
             st.write("### 📊 Fundamental Audit")
             col_left, col_right = st.columns(2)
-            
-            # Define insider rating icon
             insider_signal = "🟢 Buying" if insider_trans > 0 else ("🔴 Selling" if insider_trans < 0 else "⚪ Static")
             
             with col_left:
                 st.table(pd.DataFrame({"Metric": ["Trailing P/E", "PEG Ratio", "P/S Ratio", "Insider Own %", "Insider Trans (6M)"], 
                                        "Value": [f"{pe:.2f}" if pe else "N/A", f"{peg:.2f}" if peg else "N/A", f"{ps:.2f}" if ps else "N/A", f"{insider_own:.2f}%", f"{insider_trans:.2f}%"],
-                                       "Rating": [l_pe, l_peg, l_ps, "🔍 Skin in Game", insider_signal]}))
+                                       "Rating": [l_pe, l_peg, l_ps, "🔍 Sentiment", insider_signal]}))
             with col_right:
                 st.table(pd.DataFrame({"Metric": ["ROE %", "ROIC %", "Profit Margin", "Debt/Equity", "Short Interest %"],
                                        "Value": [f"{roe:.2f}%" if roe else "N/A", f"{roic:.2f}%" if roic else "N/A", f"{profit_margin:.2f}%" if profit_margin else "N/A", f"{debt:.2f}" if debt else "N/A", f"{short_ratio:.2f}%"],
                                        "Rating": [l_roe, l_roic, l_margin, l_debt, "⚠️ Risk Factor"]}))
 
-        # --- 7. DETAILED EXPLANATIONS ---
+        # --- 7. DETAILED METHODOLOGY GUIDE ---
         st.divider()
         st.header("📖 Methodology & Indicator Guide")
-        t1, t2, t3, t4= st.tabs(["💵 Valuation Metrics", "🏆 Efficiency Metrics", "🛡️ Safety & Sentiment","🤖 The Scoring Engine"])
+        t1, t2, t3, t4 = st.tabs(["💵 Valuation", "🏆 Efficiency", "🛡️ Safety & Insiders", "🤖 AI Engine"])
 
         with t1:
             st.markdown("""
-            ### Deep Valuation Insights
-            * **PEG Ratio (Price/Earnings to Growth):** This is the P/E ratio divided by the growth rate. A PEG < 1.0 means you are paying less for growth than it's worth.
-            * **P/S (Price to Sales):** Measures the market value per dollar of revenue.
+            ### Understanding Valuation
+            * **Trailing P/E Ratio**: Compares the current share price to the last 12 months of earnings. A low P/E suggests the stock is "cheap" relative to its profit.
+            * **PEG Ratio (Price/Earnings to Growth)**: The most critical metric for growth stocks. It adjusts the P/E by the company's growth rate. A **PEG < 1.0** indicates you are getting growth at a discount.
+            * **P/S Ratio (Price to Sales)**: Measures the market price against total revenue. Vital for valuing high-growth companies that are not yet profitable.
+            * **P/B Ratio (Price to Book)**: Compares market value to "book value" (assets minus liabilities). High P/B often indicates a company with a strong brand or intellectual property.
             """)
             
         with t2:
             st.markdown("""
-            ### Management Efficiency
-            * **ROIC (Return on Invested Capital):** This measures how well management turns capital into profit.
-            * **ROE (Return on Equity):** Measures profitability relative to shareholder money.
+            ### Measuring Management Quality
+            * **ROIC (Return on Invested Capital)**: The **Gold Standard** of efficiency. It measures how much profit a company generates for every $1 of total capital (debt + equity) invested. Values **>15%** indicate a strong competitive moat.
+            * **ROE (Return on Equity)**: Measures profitability from the shareholder's perspective. High ROE indicates management is efficient at using investors' money to grow the business.
+            * **Profit Margin**: The percentage of revenue left after all expenses. High margins (>20%) signal pricing power and a superior product.
             """)
             
         with t3:
             st.markdown("""
-            ### Safety & Insider Sentiment
-            * **Insider Ownership:** The % of the company owned by the people running it.
-            * **Insider Transactions (6M):** This shows whether insiders have been net buyers or net sellers over the last 6 months. 
-                * **Net Buying (Positive %):** Signals strong internal confidence.
-                * **Net Selling (Negative %):** Often just profit-taking, but worth watching if the trend is heavy.
-            * **Short Interest:** The % of shares being bet against. High short interest (>10%) can signal trouble.
+            ### Safety, Risk, and Insider Sentiment
+            * **Insider Ownership**: The percentage of shares owned by executives and directors. High ownership aligns the CEO's interests with yours.
+            * **Insider Transactions (6M)**: Shows if insiders have been net buyers or sellers over the last 6 months.
+                * **🟢 Net Buying**: Strong signal of internal confidence. Insiders buy for only one reason: they expect the price to rise.
+                * **🔴 Net Selling**: Can be profit-taking or tax-related, but massive selling is a warning.
+            * **Short Interest %**: The percentage of shares being bet against. High short interest (>10%) can signal market skepticism or a potential "short squeeze."
+            * **Debt to Equity**: Measures financial leverage. A ratio **<0.8** is conservative and safe.
             """)
-            
 
         with t4:
             st.markdown(r"""
-            ### The Scoring Engine
-            Score is calculated as:
+            ### The Weighted Algorithm
+            The bot uses a multivariate weighting system to generate the 0-100 score:
+            
+            1.  **Fundamental Base (70%)**: Aggregates 9 key metrics across Valuation, Efficiency, and Debt.
+            2.  **Wall Street Sentiment (30%)**: Calculates the percentage "Gap" between current price and the Analyst Mean Target.
+            
             $$Total\ Score = \left(\frac{\sum Metrics}{1.8} \times 0.7\right) + Upside\ Bonus$$
+            
+            **Thresholds:**
+            * **80+ (Strong Buy)**: Rare elite companies at attractive prices.
+            * **60-79 (Buy)**: Solid businesses with moderate upside.
+            * **40-59 (Hold)**: Fairly valued; risk and reward are balanced.
+            * **<40 (Sell)**: High debt, poor efficiency, or extreme overvaluation.
             """)
 
     except Exception as e:
