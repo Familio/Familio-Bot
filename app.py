@@ -107,8 +107,8 @@ if run_btn or ticker_input:
         is_etf = info.get('quoteType') == 'ETF'
         curr_price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('navPrice')
 
-        # Logic for Scoring
         if not is_etf:
+            # Data Extraction
             pe, f_pe, ps, pb = info.get('trailingPE'), info.get('forwardPE'), info.get('priceToSalesTrailing12Months'), info.get('priceToBook')
             peg = info.get('pegRatio')
             roe, roic, profit_margin = (info.get('returnOnEquity', 0) or 0) * 100, (info.get('returnOnAssets', 0) or 0) * 100, (info.get('profitMargins', 0) or 0) * 100
@@ -118,7 +118,7 @@ if run_btn or ticker_input:
             target = info.get('targetMeanPrice')
             upside = ((target / curr_price) - 1) * 100 if (target and curr_price) else 0
             
-            # --- ANALYST DATA ---
+            # Analyst Sentiment
             rec_key = info.get('recommendationKey')
             rec_text, rec_color = format_recommendation(rec_key)
             analyst_count = info.get('numberOfAnalystOpinions', 'N/A')
@@ -135,56 +135,49 @@ if run_btn or ticker_input:
             l_debt, s_debt = get_rating(debt, "DEBT")
             l_cr, s_cr = get_rating(current_ratio, "CurrentRatio")
 
+            # Weighted Formula
             fundamental_total = (s_pe + s_ps + s_pb + s_roe + s_debt + s_margin + s_cr + s_peg + s_roic) / 1.8
             tech_score = 30 if upside > 15 else (15 if upside > 0 else 0)
             total_score = (fundamental_total * 0.7) + tech_score
         else:
-            total_score = 85 # Standard ETF Strength Baseline
+            total_score = 85 
             verdict, color = "🚀 ETF STRENGTH", "green"
 
-        # Verdict Coloring
         if not is_etf:
             if total_score >= 80: verdict, color = "🚀 STRONG BUY", "green"
             elif total_score >= 60: verdict, color = "📈 BUY", "#90EE90"
             elif total_score >= 40: verdict, color = "⚖️ HOLD", "gray"
             else: verdict, color = "🚩 SELL", "red"
 
-        # Display Verdict
+        # Verdict Header
         vcol1, vcol2 = st.columns([2, 1])
         with vcol1:
             st.markdown(f"""<div style="background-color:{color}; padding:25px; border-radius:15px; text-align:center; border: 2px solid white;">
                 <h1 style="color:white; margin:0;">Verdict: {verdict}</h1>
                 <h2 style="color:white; margin:0;">AI Score: {int(total_score)}/100</h2></div>""", unsafe_allow_html=True)
-        
         with vcol2:
             if not is_etf:
                 st.markdown(f"""<div style="background-color:white; padding:25px; border-radius:15px; text-align:center; border: 2px solid {rec_color}; height: 100%;">
                     <h3 style="color:gray; margin:0; font-size: 16px;">Analyst Consensus</h3>
                     <h2 style="color:{rec_color}; margin:10px 0;">{rec_text}</h2>
                     <p style="color:gray; font-size: 12px;">Based on {analyst_count} analysts</p></div>""", unsafe_allow_html=True)
-            else:
-                st.info("Analyst ratings typically unavailable for ETFs.")
 
         st.subheader(f"Live Analysis: {info.get('longName', ticker_input)}")
         
-        # --- ETF SPECIAL: ABOUT & PORTFOLIO ---
         if is_etf:
             st.divider()
             st.header("📂 ETF Overview & Composition")
             ecol1, ecol2 = st.columns([2, 1])
             with ecol1:
-                st.markdown("#### Strategy Description")
                 st.write(info.get('longBusinessSummary', "Description not available."))
             with ecol2:
-                st.markdown("#### Asset Allocation")
                 allocation = {"Asset": ["Stocks", "Bonds", "Cash", "Other"], 
                               "Weight": [info.get('fundProfile', {}).get('stockPosition', 98.5), 
                                          info.get('fundProfile', {}).get('bondPosition', 0.5), 
                                          info.get('fundProfile', {}).get('cashPosition', 1.0), 0]}
-                fig = px.pie(allocation, values='Weight', names='Asset', hole=0.5)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(px.pie(allocation, values='Weight', names='Asset', hole=0.5), use_container_width=True)
 
-        # --- TRADINGVIEW CHART ---
+        # Chart
         tv_widget = f"""<div class="tradingview-widget-container"><div id="tv_chart"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
           <script type="text/javascript">
@@ -192,7 +185,7 @@ if run_btn or ticker_input:
           </script></div>"""
         components.html(tv_widget, height=470)
 
-        # --- DATA TABLES (STOCK ONLY) ---
+        # Audit Tables
         if not is_etf:
             st.write("### 📊 Fundamental Audit")
             col_left, col_right = st.columns(2)
@@ -205,39 +198,55 @@ if run_btn or ticker_input:
                                        "Value": [f"{roe:.2f}%" if roe else "N/A", f"{roic:.2f}%" if roic else "N/A", f"{profit_margin:.2f}%" if profit_margin else "N/A", f"{debt:.2f}" if debt else "N/A", f"{short_ratio:.2f}%"],
                                        "Rating": [l_roe, l_roic, l_margin, l_debt, "⚠️ Risk Factor"]}))
 
-        # --- 7. EXPLANATION SECTION for STOCKS---
+        # --- 7. DETAILED EXPLANATIONS ---
         st.divider()
         st.header("📖 Methodology & Indicator Guide")
-        t1, t2, t3, t4= st.tabs(["💵 Valuation", "🏆 Performance", "🛡️ Safety","🤖 The Scoring Engine"])
+        t1, t2, t3, t4= st.tabs(["💵 Valuation Metrics", "🏆 Efficiency Metrics", "🛡️ Safety & Sentiment","🤖 The Scoring Engine"])
 
         with t1:
             st.markdown("""
-            **PEG Ratio:** Price/Earnings to Growth. A PEG under 1.0 means you're buying growth at a discount.
-            
-            **P/E (Price to Earnings):** Standard valuation. A P/E under 20 is often considered 'value' territory.
-            
-            **Insider Ownership:** High ownership means management's interests are aligned with yours.
+            ### Deep Valuation Insights
+            * **PEG Ratio (Price/Earnings to Growth):** This is the P/E ratio divided by the growth rate. A PEG < 1.0 means you are paying less for growth than it's worth. It helps find "growth at a reasonable price" (GARP).
+            * **Trailing P/E:** Compares share price to the last 12 months of earnings. A high P/E (e.g., >40) suggests high expectations or a bubble.
+            * **P/S (Price to Sales):** Measures the market value per dollar of revenue. Crucial for high-growth tech companies that aren't profitable yet.
+            * **P/B (Price to Book):** The market price vs. the company's net asset value. High P/B often signals a "moat" (brand/IP value), while low P/B can signal distress.
             """)
-
+            
         with t2:
             st.markdown("""
-            **ROIC (Return on Invested Capital):** Measures how effectively a company turns capital into profit. Over 15% is excellent.
-            
-            **ROE (Return on Equity):** How much profit the company generates with shareholder money.
+            ### Management Efficiency
+            * **ROIC (Return on Invested Capital):** This is the **Gold Standard** for high-quality investing. It measures how much profit a company generates for every $1 of capital (debt + equity) invested. Values >15% indicate a wide competitive moat.
+            * **ROE (Return on Equity):** Measures profitability from the perspective of the shareholder. High ROE indicates management is highly efficient at reinvesting your money.
+            * **Profit Margin:** Shows what percentage of sales turned into profit. High margins (>20%) signal pricing power.
             """)
-
+            
         with t3:
             st.markdown("""
-            **Short Interest:** The % of shares being bet against. High short interest (>10%) can signal trouble or a potential 'short squeeze'.
-            
-            **Debt/Equity:** A ratio of 1.0 means debt equals equity. Lower is safer.
+            ### Safety & Market Sentiment
+            * **Insider Ownership:** Shows the percentage of stock owned by executives. High ownership means "skin in the game"—the CEO wins only if you win.
+            * **Short Interest:** The percentage of investors betting the stock will crash. High short interest (>10%) can signal upcoming trouble or a "short squeeze" opportunity.
+            * **Debt/Equity:** A measure of leverage. Anything under 0.8 is considered conservative and safe.
+            * **Current Ratio:** Measures short-term liquidity. A ratio >1.5 ensures the company can pay its bills for the next 12 months.
             """)
+
         with t4:
-            st.markdown("""
-            ### Scoring Engine v2.0
-            We now incorporate **PEG** and **ROIC** into the Fundamental Base (70%), providing a more accurate picture of growth-adjusted value.
-            """)
+            st.markdown(r"""
+            ### The Weighted Algorithm
+            The bot uses a **multivariate weighting system** to prevent bias towards just one metric.
             
+            #### 1. Fundamental Base (70%)
+            We combine 9 metrics (PE, PEG, PS, PB, ROE, ROIC, Margin, Debt, Current Ratio) to build a "Business Strength" score.
+            
+            #### 2. Technical Upside (30%)
+            We calculate the "professional gap" between the current price and Wall Street's Target Price.
+            
+            $$Total\ Score = \left(\frac{\sum Metrics}{1.8} \times 0.7\right) + Upside\ Bonus$$
+            
+            #### 3. Thresholds
+            * **Strong Buy (80+):** Elite business quality at a fair/great price.
+            * **Hold (40-59):** Fairly valued; current price reflects business quality accurately.
+            * **Sell (<40):** Significant financial risk or extreme overvaluation.
+            """)
 
     except Exception as e:
         st.error(f"Analysis failed: {e}")
